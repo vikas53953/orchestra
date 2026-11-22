@@ -1,0 +1,9 @@
+{
+  "name": "sample-repo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A tiny synthetic Node project used by Orchestra tests.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

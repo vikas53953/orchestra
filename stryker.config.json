@@ -5,13 +5,29 @@
     "apps/desktop/src/main/engine/streamParser.ts",
     "apps/desktop/src/main/engine/jsonExtract.ts",
     "apps/desktop/src/main/engine/errors.ts",
-    "apps/desktop/src/main/conductor/title.ts",
-    "apps/desktop/src/renderer/state/lanes.ts"
+    "apps/desktop/src/renderer/store/lanes.ts"
   ],
-  "ignorePatterns": ["out", "dist", "test-results"],
-  "reporters": ["clear-text", "progress", "json"],
-  "jsonReporter": { "fileName": "test-results/mutation.json" },
-  "thresholds": { "high": 85, "low": 75, "break": 70 },
+  "ignorePatterns": [
+    "out",
+    "dist",
+    "test-results"
+  ],
+  "reporters": [
+    "clear-text",
+    "progress",
+    "json"
+  ],
+  "jsonReporter": {
+    "fileName": "test-results/mutation.json"
+  },
+  "thresholds": {
+    "high": 85,
+    "low": 75,
+    "break": 70
+  },
   "concurrency": 2,
-  "timeoutMS": 30000
+  "timeoutMS": 30000,
+  "vitest": {
+    "configFile": "vitest.stryker.config.ts"
+  }
 }

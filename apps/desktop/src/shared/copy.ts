@@ -8,6 +8,10 @@ export const COPY = {
   'home.repo.change': 'Change repo',
   'home.repo.notGit': "This folder isn't a Git repo. Pick a folder that has a .git folder.",
   'home.send': 'Send',
+  'home.error.emptyTask': 'Type a question or a task first.',
+  'home.error.noCommits': 'This repo has no commits yet. Make a first commit, then try again.',
+  'home.error.worktreeFailed': "Orchestra couldn't make a working copy of this repo. Check free space and that Git works, then try again.",
+  'home.error.badRequest': 'Something went wrong sending that. Try again.',
   'sidebar.sessions': 'Your sessions',
   'sidebar.empty': 'No sessions yet',
   'sidebar.new': 'New session',
@@ -50,8 +54,8 @@ export const COPY = {
   'setup.fix.claude_signed_in': 'Run `claude` once in a terminal and sign in.',
   'setup.fix.claude_update': 'Update Claude Code, then check again.',
   'setup.fix.git': 'Install Git for Windows.',
-  'setup.fix.gh': 'Install GitHub CLI, then run `gh auth login`. You need it to open PRs.',
-  'setup.fix.disk': 'Low space on {drive}. Free up space or choose another drive in Settings.',
+  'setup.fix.gh': 'Install GitHub CLI, then run `gh auth login`.',
+  'setup.fix.disk': 'Low space on {drive}. Choose another drive in Settings.',
   'setup.ok': 'Ready',
   'error.not_installed': 'Claude Code was not found on this PC.',
   'error.not_signed_in': 'Claude Code is not signed in. Run `claude` once and sign in.',
@@ -61,6 +65,12 @@ export const COPY = {
   'error.crashed': '{role} stopped unexpectedly.',
   'error.stopped': 'Stopped.',
   'error.tryAgain': 'Try again',
+  // T4 additions
+  'session.meta.started': 'Started {time}',
+  'session.panel.close': 'Close panel',
+  'session.panel.empty': "{role} hasn't started yet.",
+  'setup.status.missing': 'Missing',
+  'setup.status.warn': 'Needed later',
 } as const;
 
 export type CopyKey = keyof typeof COPY;
