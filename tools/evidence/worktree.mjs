@@ -1,6 +1,6 @@
 // Detached git worktrees at a given sha, sharing this checkout's node_modules (junction on Windows).
 import { execFileSync, spawn } from 'node:child_process';
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -8,7 +8,8 @@ import { setTimeout as sleep } from 'node:timers/promises';
 export const git = (args, opts = {}) => execFileSync('git', args, { encoding: 'utf8', ...opts });
 
 export function addWorktree(sha, label) {
-  const dir = mkdtempSync(join(tmpdir(), `evidence-${label}-`));
+  // Long real path: Windows tmpdir() can be an 8.3 short name that vite's allow list does not match.
+  const dir = realpathSync.native(mkdtempSync(join(tmpdir(), `evidence-${label}-`)));
   git(['worktree', 'add', '--detach', '--force', dir, sha], { stdio: 'pipe' });
   const nm = join(process.cwd(), 'node_modules');
   if (existsSync(nm)) {
