@@ -17,6 +17,12 @@ describe('which PRs get before/after pictures', () => {
     expect(touchesScreens(['apps/desktop/src/main/engine/index.ts', 'README.md'])).toBe(false);
     expect(touchesScreens([])).toBe(false);
   });
+  it('a change to the photographer or the vite config gets pictures, so it proves itself', () => {
+    expect(touchesScreens(['tools/evidence/worktree.mjs'])).toBe(true);
+    expect(touchesScreens(['tools/evidence/vite-serve.mjs'])).toBe(true);
+    expect(touchesScreens(['vite.config.ts'])).toBe(true);
+    expect(touchesScreens(['tools/evidence/publish.mjs'])).toBe(false);
+  });
 });
 
 describe('screen states to photograph', () => {

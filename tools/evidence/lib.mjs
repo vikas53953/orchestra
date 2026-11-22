@@ -8,7 +8,8 @@ export const MARKER = '<!-- orchestra-evidence -->';
 /** Gates, in the order the comment lists them. */
 export const GATES = ['typecheck', 'tokens', 'unit', 'red-proof', 'mutation', 'build', 'e2e', 'installer', 'evidence'];
 
-const SCREEN_PATHS = [/^apps\/desktop\/src\/renderer\//, /^apps\/desktop\/src\/shared\/copy\.ts$/, /tokens\.css$/];
+// The photographer itself (and the vite config it serves) also counts, so a change to it proves itself on the runner.
+const SCREEN_PATHS = [/^apps\/desktop\/src\/renderer\//, /^apps\/desktop\/src\/shared\/copy\.ts$/, /tokens\.css$/, /^tools\/evidence\/(shots|worktree|vite-serve)\.mjs$/, /^vite\.config\.ts$/];
 
 /** True when a changed-file list touches anything that can change what is on screen. */
 export function touchesScreens(files) {
