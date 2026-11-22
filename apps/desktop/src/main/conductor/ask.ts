@@ -1,15 +1,14 @@
 // Sprint 0 conductor: one Team Lead answers a question about a repo, read-only, in its own worktree.
 // Spec: architecture.md §3, §6, §9; PRD.md R0.4; test-contract AC-S0.3, AC-F1b, AC-L1, AC-L2, J9. Owner: T3.
 import { randomUUID } from 'node:crypto';
-import { resolve } from 'node:path';
 import type { Engine, EngineEvent, RunRequest, RunResult } from '../../shared/engine';
 import type { NewEvent, OrchestraEvent } from '../../shared/events';
-import type { EventsAppendPush, SessionCreateRequest } from '../../shared/ipc';
+import { IPC_ERROR_PREFIX, type EventsAppendPush, type IpcErrorCode, type SessionCreateRequest } from '../../shared/ipc';
 import type { EngineError, Role, Session, SessionState } from '../../shared/types';
 import type { Store } from '../store';
 import { worktreePath as defaultWorktreePath } from '../paths';
 import { EventBatcher, PUSH_BATCH_MS } from './batcher';
-import { repoTopLevel, runGit, type RunGit } from './git';
+import { mainRepoOf, nullDevice, repoTopLevel, runGit, type RunGit } from './git';
 
 export const TITLE_MAX = 60;
 export const STOP_DEADLINE_MS = 2_000;
@@ -29,24 +28,24 @@ export const ASK_LIMITS = {
 } as const;
 
 /**
- * Error codes crossing IPC. Electron keeps only the message of a rejected invoke, so the code is the
- * message prefix "orchestra:<code>". The renderer maps not_git to copy key home.repo.notGit (AC-F1b).
+ * Error codes crossing IPC (shared/ipc.ts IPC_ERROR_PREFIX + IpcErrorCode). The renderer maps them with
+ * ipcErrorCode() and IPC_ERROR_COPY, e.g. not_git -> home.repo.notGit (AC-F1b).
  */
-export type SessionErrorCode = 'not_git' | 'empty_task' | 'no_commits' | 'worktree_failed' | 'bad_request';
+export type SessionErrorCode = IpcErrorCode;
 export class SessionError extends Error {
   constructor(readonly code: SessionErrorCode, detail?: string) {
-    super(`orchestra:${code}${detail ? ` ${detail}` : ''}`);
+    super(`${IPC_ERROR_PREFIX}${code}${detail ? ` ${detail}` : ''}`);
     this.name = 'SessionError';
   }
 }
 
-/** Title = the task on one line, cut to 60 chars at a word boundary (J9). */
+/** Title = the task on one line, cut to 60 characters (code points) at a word boundary (J9). */
 export function makeTitle(task: string, max = TITLE_MAX): string {
-  const flat = task.replace(/\s+/g, ' ').trim();
-  if (flat.length <= max) return flat;
-  const cut = flat.slice(0, max + 1);
+  const chars = [...task.replace(/\s+/g, ' ').trim()]; // code points, so an emoji is never split
+  if (chars.length <= max) return chars.join('');
+  const cut = chars.slice(0, max + 1);
   const space = cut.lastIndexOf(' ');
-  return (space > 0 ? cut.slice(0, space) : flat.slice(0, max)).trimEnd();
+  return (space > 0 ? cut.slice(0, space) : chars.slice(0, max)).join('').trimEnd();
 }
 
 export interface ConductorDeps {
@@ -101,7 +100,7 @@ export class Conductor {
     if (task === '') throw new SessionError('empty_task');
     const top = await repoTopLevel(req.repoPath, this.git);
     if (!top) throw new SessionError('not_git');
-    const repoPath = resolve(top);
+    const repoPath = await mainRepoOf(top, this.git);
 
     const head = await this.git(['-C', repoPath, 'rev-parse', '--verify', '--quiet', 'HEAD']);
     if (!head.ok) throw new SessionError('no_commits');
@@ -110,13 +109,23 @@ export class Conductor {
 
     const id = this.newId();
     const worktreePath = this.wtPath(repoPath, id);
-    const wt = await this.git(['-C', repoPath, 'worktree', 'add', '--detach', worktreePath, 'HEAD'], 120_000);
+    // core.hooksPath -> null device: the user's post-checkout hook must not run in our worktree.
+    const wt = await this.git(
+      ['-C', repoPath, '-c', `core.hooksPath=${nullDevice()}`, 'worktree', 'add', '--detach', worktreePath, 'HEAD'],
+      120_000,
+    );
     if (!wt.ok) throw new SessionError('worktree_failed', wt.stderr.trim().slice(0, 300));
 
     const title = makeTitle(task);
-    const session = this.deps.store.createSession({
-      id, title, task, repoPath, baseBranch, branch: '', worktreePath, state: 'planning',
-    });
+    let session: Session;
+    try {
+      session = this.deps.store.createSession({
+        id, title, task, repoPath, baseBranch, branch: '', worktreePath, state: 'planning',
+      });
+    } catch (err) {
+      await this.git(['-C', repoPath, 'worktree', 'remove', '--force', worktreePath]); // no orphaned worktree
+      throw err;
+    }
     this.emit([
       { type: 'session.created', sessionId: id, runId: null, payload: { title, task, repoPath } },
       { type: 'session.state', sessionId: id, runId: null, payload: { state: 'planning' } },

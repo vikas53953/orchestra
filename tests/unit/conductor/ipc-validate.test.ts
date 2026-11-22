@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   isAbsolutePath, validateNoArg, validateSessionCreate, validateSessionGet, validateSessionStop, validateSetupCheck,
 } from '../../../apps/desktop/src/main/ipc/validate';
+import { ipcErrorCode } from '../../../apps/desktop/src/shared/ipc';
+import { denyAllPermissions } from '../../../apps/desktop/src/main/ipc/security';
 
 describe('IPC argument validation', () => {
   it('session:create accepts {repoPath, task} with an absolute path (posix and win32)', () => {
@@ -52,5 +54,31 @@ describe('IPC argument validation', () => {
     expect(() => validateSetupCheck('yes')).toThrow();
     expect(() => validateNoArg(undefined, 'repo:pick')).not.toThrow();
     expect(() => validateNoArg({ path: '/' }, 'repo:pick')).toThrow();
+  });
+});
+
+describe('IPC error prefix', () => {
+  it('validation errors map through the shared ipcErrorCode to bad_request', () => {
+    let err: unknown;
+    try { validateSessionGet(5); } catch (e) { err = e; }
+    expect(ipcErrorCode(err)).toBe('bad_request');
+  });
+});
+
+describe('permission handlers', () => {
+  it('deny every permission request and check (camera, notifications, ...)', () => {
+    let req: ((wc: unknown, perm: string, cb: (ok: boolean) => void) => void) | null = null;
+    let check: ((wc: unknown, perm: string) => boolean) | null = null;
+    const fakeSession = {
+      setPermissionRequestHandler: (h: typeof req) => { req = h; },
+      setPermissionCheckHandler: (h: typeof check) => { check = h; },
+    };
+    denyAllPermissions(fakeSession as never);
+    const answers: boolean[] = [];
+    for (const p of ['media', 'notifications', 'geolocation', 'clipboard-read']) {
+      req!(null, p, (ok) => answers.push(ok));
+      expect(check!(null, p)).toBe(false);
+    }
+    expect(answers).toEqual([false, false, false, false]);
   });
 });

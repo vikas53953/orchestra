@@ -61,6 +61,7 @@ describe('setup check', () => {
       ['claude', 'ok'], ['claude_signed_in', 'ok'], ['git', 'ok'], ['gh', 'ok'], ['disk', 'ok'],
     ]);
     expect(r.canStart).toBe(true);
+    expect(r.items.find((i) => i.id === 'disk')?.drive).toBe('/');
   });
 
   it('not signed in blocks; gh missing and low disk only warn', async () => {
@@ -73,7 +74,7 @@ describe('setup check', () => {
     const by = Object.fromEntries(r.items.map((i) => [i.id, i]));
     expect(by.claude_signed_in).toMatchObject({ status: 'missing', fixKey: 'setup.fix.claude_signed_in' });
     expect(by.gh).toMatchObject({ status: 'warn', fixKey: 'setup.fix.gh' });
-    expect(by.disk).toMatchObject({ status: 'warn', fixKey: 'setup.fix.disk', detail: '1.0 GB' });
+    expect(by.disk).toMatchObject({ status: 'warn', fixKey: 'setup.fix.disk', detail: '1.0 GB', drive: '/' });
     expect(by.git?.status).toBe('ok');
     expect(r.canStart).toBe(false);
   });

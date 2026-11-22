@@ -124,11 +124,12 @@ export function createSetupChecker(opts: SetupCheckerOpts): SetupChecker {
 
   async function diskItem(): Promise<SetupItem> {
     const free = await getFree(opts.dataDir);
-    if (free == null) return { id: 'disk', status: 'warn', fixKey: 'setup.fix.disk', detail: null };
+    const drive = driveOf(opts.dataDir);
+    if (free == null) return { id: 'disk', status: 'warn', fixKey: 'setup.fix.disk', detail: null, drive };
     const detail = `${(free / 1024 ** 3).toFixed(1)} GB`;
     return free >= MIN_FREE_BYTES
-      ? { id: 'disk', status: 'ok', fixKey: null, detail }
-      : { id: 'disk', status: 'warn', fixKey: 'setup.fix.disk', detail };
+      ? { id: 'disk', status: 'ok', fixKey: null, detail, drive }
+      : { id: 'disk', status: 'warn', fixKey: 'setup.fix.disk', detail, drive };
   }
 
   async function run(): Promise<SetupReport> {

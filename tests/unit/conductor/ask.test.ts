@@ -1,12 +1,12 @@
 // Conductor tests with a fake engine that waits for real (pre-check only).
 import { afterEach, describe, expect, it } from 'vitest';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ASK_SYSTEM_APPEND, Conductor, SessionError, makeTitle } from '../../../apps/desktop/src/main/conductor/ask';
 import { Store } from '../../../apps/desktop/src/main/store';
 import type { Engine } from '../../../apps/desktop/src/shared/engine';
-import type { EventsAppendPush } from '../../../apps/desktop/src/shared/ipc';
+import { ipcErrorCode, type EventsAppendPush } from '../../../apps/desktop/src/shared/ipc';
 import { ANSWER_STEPS, fakeEngine, git, makeRepo, sleep } from './helpers';
 
 const cleanup: Array<() => void> = [];
@@ -187,5 +187,59 @@ describe('shutdown shim', () => {
   it('no-ops when main/process/treeKill is not present yet', async () => {
     const { killAllTrackedIfPresent } = await import('../../../apps/desktop/src/main/conductor/shutdown');
     await expect(killAllTrackedIfPresent(10)).resolves.toBeUndefined();
+  });
+});
+
+describe('verifier fixes (PR #5)', () => {
+  it('J9 makeTitle cuts by code points and never leaves a lone surrogate', () => {
+    const task = `${'a'.repeat(59)}😀😀 tail`;
+    const title = makeTitle(task);
+    expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/.test(title)).toBe(false);
+    expect([...title].length).toBeLessThanOrEqual(60);
+    const emojiOnly = '😀'.repeat(100);
+    expect(makeTitle(emojiOnly)).toBe('😀'.repeat(60));
+  });
+
+  it('AC-L2 a session started from inside a session worktree uses the main repo as repoPath', async () => {
+    const { repo, store, c } = setup(fakeEngine({ steps: ANSWER_STEPS }));
+    const first = await c.createSession({ repoPath: repo, task: 'one' });
+    await c.whenDone(first.id);
+    const second = await c.createSession({ repoPath: join(first.worktreePath, 'src'), task: 'two' });
+    await c.whenDone(second.id);
+    expect(second.repoPath).toBe(repo);
+    expect(store.getSession(second.id)?.repoPath).toBe(repo);
+    expect(second.worktreePath).not.toContain(first.id);
+  });
+
+  it('AC-L2 git worktree add does not run the user post-checkout hook', async () => {
+    const { repo, c } = setup(fakeEngine({ steps: ANSWER_STEPS }));
+    const marker = join(repo, '..', 'hook-ran.txt');
+    const hook = join(repo, '.git', 'hooks', 'post-checkout');
+    writeFileSync(hook, `#!/bin/sh\necho ran > "${marker}"\n`);
+    chmodSync(hook, 0o755);
+    const s = await c.createSession({ repoPath: repo, task: 'q' });
+    await c.whenDone(s.id);
+    expect(existsSync(marker)).toBe(false);
+  });
+
+  it('a store failure after worktree add removes the orphaned worktree', async () => {
+    const { repo, store, c } = setup(fakeEngine({ steps: ANSWER_STEPS }));
+    let wt = '';
+    const orig = store.createSession.bind(store);
+    store.createSession = (s) => { wt = s.worktreePath; void orig; throw new Error('disk full'); };
+    await expect(c.createSession({ repoPath: repo, task: 'q' })).rejects.toThrow('disk full');
+    expect(wt).not.toBe('');
+    expect(existsSync(wt)).toBe(false);
+    expect(git(repo, 'worktree', 'list', '--porcelain')).not.toContain(wt);
+  });
+
+  it('conductor errors carry the shared IPC error prefix (ipcErrorCode)', async () => {
+    const { store, c } = setup(fakeEngine({ steps: ANSWER_STEPS }));
+    void store;
+    const plain = mkdtempSync(join(tmpdir(), 'orch-plain-'));
+    cleanup.push(() => rmSync(plain, { recursive: true, force: true }));
+    const err = await c.createSession({ repoPath: plain, task: 'hi' }).catch((e: unknown) => e);
+    expect(ipcErrorCode(err)).toBe('not_git');
+    expect(ipcErrorCode(new SessionError('worktree_failed', 'x'))).toBe('worktree_failed');
   });
 });

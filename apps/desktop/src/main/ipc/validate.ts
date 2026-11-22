@@ -1,6 +1,6 @@
 // Pure argument validators for IPC commands (architecture.md §8, §10). Anything else is rejected. Owner: T3.
 import { posix, win32 } from 'node:path';
-import type { SessionCreateRequest } from '../../shared/ipc';
+import { IPC_ERROR_PREFIX, type SessionCreateRequest } from '../../shared/ipc';
 
 export const MAX_TASK_CHARS = 100_000;
 export const MAX_PATH_CHARS = 4_096;
@@ -8,7 +8,7 @@ export const MAX_ID_CHARS = 128;
 
 export class IpcValidationError extends Error {
   constructor(what: string) {
-    super(`orchestra:bad_request ${what}`);
+    super(`${IPC_ERROR_PREFIX}bad_request ${what}`);
     this.name = 'IpcValidationError';
   }
 }

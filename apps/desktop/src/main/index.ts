@@ -1,5 +1,5 @@
 // Main process entry. Spec: architecture.md §3, §8-§10; PRD.md R0.2-R0.4, §4. Owner: T3.
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, session } from 'electron';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -9,6 +9,7 @@ import { createEngine } from './engine';
 import { Conductor } from './conductor/ask';
 import { killAllTrackedIfPresent } from './conductor/shutdown';
 import { registerIpc } from './ipc/handlers';
+import { denyAllPermissions } from './ipc/security';
 import { dataDir as resolveDataDir, dbPath, logsDir } from './paths';
 import { createSetupChecker } from './setup/check';
 import { Store } from './store';
@@ -73,6 +74,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(() => {
+    denyAllPermissions(session.defaultSession);
     const dir = resolveDataDir(app.getPath('appData'));
     mkdirSync(logsDir(dir), { recursive: true });
     store = new Store(dbPath(dir));
