@@ -112,7 +112,7 @@ Commands (renderer → main, `ipcRenderer.invoke`): `setup:check`, `repo:pick`, 
 Push (main → renderer): `events:append {sessionId, events[]}` batched every 50 ms.
 
 ## 9. Errors and recovery
-- Engine errors map to on-screen causes: not_installed / not_signed_in → setup screen; rate_limited → "Claude usage limit reached. Try again after <time from CLI>."; timeout → "Builder took longer than 25 min and was stopped."; bad_output → "Team Lead's reply couldn't be read" + Try again.
+- Engine errors map to on-screen causes: not_installed / not_signed_in → setup screen; rate_limited → "Claude usage limit reached. Try again after <time from CLI>." (with no time from the CLI: "Claude usage limit reached. Try again later."; the CLI's raw text is never shown in this sentence, CR-4); timeout → "Builder took longer than 25 min and was stopped."; bad_output → "Team Lead's reply couldn't be read" + Try again.
 - App crash or quit mid-run: on next start, sessions in planning/building/testing/shipping → stopped; worktree kept.
 - Git conflicts are impossible in Sprint 1 (one writer per worktree at a time).
 
