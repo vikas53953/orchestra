@@ -32,6 +32,10 @@ jobs:
           $out = claude -p "Reply with OK" --output-format json --max-turns 1 2>&1 | Out-String
           if ($LASTEXITCODE -ne 0 -or $out -match '"is_error":\s*true') { Write-Output "::error::preflight failed: Claude Code refused or is not signed in"; Write-Output $out; exit 1 }
       - run: npm ci
+      - name: Electron binary present (a slow download can leave it missing and freeze the tests)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path node_modules/electron/dist/electron.exe)) { Write-Output "::error::Electron binary missing after npm ci (download failed or too slow)"; exit 1 }
       - run: npm run build
       - name: J0 real AI x3
         shell: pwsh
