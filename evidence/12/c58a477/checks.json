@@ -1,0 +1,90 @@
+{
+  "pr": 12,
+  "headSha": "c58a4778fa98fb61ab6b085d5421e8cf4cead1a1",
+  "baseSha": "b6afa074708ccb820b3519be2668363748a61b99",
+  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45056127345",
+  "outcomes": {
+    "unit": "success",
+    "red-proof": "not-run",
+    "mutation": "success",
+    "build": "success",
+    "e2e": "success",
+    "installer": "success",
+    "typecheck": "success",
+    "tokens": "success",
+    "evidence": "success"
+  },
+  "rows": [
+    {
+      "name": "typecheck",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "tokens",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "unit",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "red-proof",
+      "outcome": "not-run",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "not applicable: this PR does not change both unit tests and app source"
+    },
+    {
+      "name": "mutation",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "build",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "e2e",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": "recorded replies only (pre-check)"
+    },
+    {
+      "name": "installer",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "evidence",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "real-ai",
+      "outcome": "",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "UNVERIFIED until run on owner's PC (D9)"
+    }
+  ],
+  "digests": {}
+}
