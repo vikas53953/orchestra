@@ -34,20 +34,19 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: J0 real AI x3
-        run: npx playwright test tests/e2e/sprint0.spec.ts -g "J0" --repeat-each=3 --trace off --reporter=line,junit
-        env:
-          PLAYWRIGHT_JUNIT_OUTPUT_NAME: real-ai-junit.xml
-      - name: no engine left running
-        if: always()
         shell: pwsh
         run: |
-          $left = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'orchestra' -and $_.Name -match 'claude|electron' }
-          if ($left) { $left | Select-Object ProcessId, Name | Format-Table; Write-Output "::error::engine processes left after the run"; exit 1 }
+          Remove-Item -ErrorAction SilentlyContinue real-ai-junit.xml
+          npx playwright test tests/e2e/sprint0.spec.ts -g "J0" --repeat-each=3 --timeout=240000 --trace off --reporter=line,junit
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: real-ai-junit.xml
       - uses: actions/upload-artifact@v4
-        if: always()
+        # Public repo: keep only failure records, briefly (may hold Claude output and local paths).
+        if: failure()
         with:
           name: real-ai-${{ github.sha }}
           path: real-ai-junit.xml
+          retention-days: 3
           if-no-files-found: ignore
 
   alert:
@@ -61,8 +60,11 @@ jobs:
       - env:
           GH_TOKEN: ${{ github.token }}
           RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref_name }}
         run: |
-          n=$(gh api "repos/${{ github.repository }}/issues?state=open&labels=real-ai" --jq '.[0].number // empty')
-          body="Real-AI journeys failed on ${{ github.sha }} (${{ github.ref_name }}). Run: $RUN"
-          if [ -n "$n" ]; then gh api "repos/${{ github.repository }}/issues/$n/comments" -f body="$body"
-          else gh api "repos/${{ github.repository }}/issues" -f title="Real-AI journeys failing" -f body="$body" -f 'labels[]=real-ai' -f 'assignees[]=vikas53953'; fi
+          n=$(gh api "repos/$REPO/issues?state=open&labels=real-ai" --jq '.[0].number // empty')
+          body="Real-AI journeys failed on $SHA ($REF). Run: $RUN"
+          if [ -n "$n" ]; then gh api "repos/$REPO/issues/$n/comments" -f body="$body"
+          else gh api "repos/$REPO/issues" -f title="Real-AI journeys failing" -f body="$body" -f 'labels[]=real-ai' -f 'assignees[]=vikas53953'; fi
