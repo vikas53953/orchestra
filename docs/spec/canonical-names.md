@@ -5,5 +5,5 @@ Status chip copy: planning "Team Lead is planning" · plan_ready "Plan waiting f
 Branch: orchestra/<slug>-<id4>. Commit messages: "orchestra: <title>", "orchestra: tests". PR footer: "Made with Orchestra".
 Paths: %APPDATA%\Orchestra\{settings.json,orchestra.db,logs\}; worktrees <drive>:\.orchestra-worktrees\<repoName>\<sessionId>.
 Event types, IPC channels, tables: as listed in architecture.md §7-8 (that list is canonical).
-Test ids: data-testid="home-composer", "repo-chip", "session-list", "lane-<role>", "plan-card", "plan-approve", "plan-change-input", "approval-card", "approve-pr", "decline", "view-changes", "stop", "panel", "setup-check", "setup-recheck".
+Test ids: data-testid="home-composer", "repo-chip", "session-list", "lane-<role>", "plan-card", "plan-approve", "plan-change-input", "approval-card", "approve-pr", "decline", "view-changes", "stop", "panel", "setup-check", "setup-recheck", "answer-card", "session-title", "session-item", "working-dot" (CR-1).
 Screens: C1 Home, C2 Session, C3 Approval, C5 First run, C6 Loading, C7 Long names (Paper "Orchestra – Round 3 Conductor").
