@@ -61,6 +61,27 @@ describe('resolveClaudeCli', () => {
     expect(r).toEqual({ cmd: exe, prefixArgs: [] });
   });
 
+  it('win32: the node.exe in an old shim header is never taken as the target', async () => {
+    const cli = win32.join(PKG, 'cli.js');
+    const old = '@IF EXIST "%~dp0\\node.exe" (\r\n  "%~dp0\\node.exe"  "%~dp0\\node_modules\\@anthropic-ai\\claude-code\\cli.js" %*\r\n)';
+    const r = await resolveClaudeCli({}, deps({
+      where: async () => ['C:\\npm\\claude.cmd'],
+      readText: (p) => (p === 'C:\\npm\\claude.cmd' ? old : null),
+      exists: (p) => p === cli || p === 'C:\\npm\\node.exe',
+    }));
+    expect(r).toEqual({ cmd: 'C:\\npm\\node.exe', prefixArgs: [cli] });
+  });
+
+  it('win32: a bin that is not an .exe or JS file is skipped, not spawned', async () => {
+    const exe = win32.join(PKG, 'bin', 'claude.exe');
+    const r = await resolveClaudeCli({}, deps({
+      where: async () => ['C:\\npm\\claude.cmd'],
+      readText: (p) => (p === win32.join(PKG, 'package.json') ? JSON.stringify({ bin: 'bin/claude.cmd' }) : null),
+      exists: () => true,
+    }));
+    expect(r).toEqual({ cmd: exe, prefixArgs: [] });
+  });
+
   it('win32: a package bin that escapes the package folder is ignored', async () => {
     const r = await resolveClaudeCli({}, deps({
       where: async () => ['C:\\npm\\claude.cmd'],

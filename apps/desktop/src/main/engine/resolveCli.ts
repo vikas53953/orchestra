@@ -62,10 +62,15 @@ function shimTargets(shim: string, deps: ResolveDeps): string[] {
     } catch { /* unreadable package.json: try the shim and known layouts */ }
   }
   const text = deps.readText(shim);
-  const m = text?.match(/"%~?dp0%?\\([^"%\r\n]+\.(?:exe|c?m?js))"/i);
-  if (m?.[1]) { const p = resolve(dir, m[1]); if (inside(dir, p)) out.push(p); }
+  // Every quoted "%dp0%\…" / "%~dp0\…" path, skipping node.exe (old shims name it before the real target).
+  for (const m of text?.matchAll(/"%~?dp0%?\\([^"%\r\n]+\.(?:exe|c?m?js))"/gi) ?? []) {
+    if (!m[1]) continue;
+    const p = resolve(dir, m[1]);
+    if (!/^node\.exe$/i.test(win32.basename(p)) && inside(dir, p)) out.push(p);
+  }
   out.push(join(pkg, 'bin', 'claude.exe'), join(pkg, 'cli.js'));
-  return [...new Set(out)];
+  // Only an .exe (run directly) or a JS file (run through node) can be spawned without a shell.
+  return [...new Set(out)].filter((p) => /\.exe$/i.test(p) || JS_ENTRY.test(p));
 }
 
 export async function resolveClaudeCli(env: NodeJS.ProcessEnv, deps: ResolveDeps = defaultResolveDeps): Promise<ResolvedCli> {
