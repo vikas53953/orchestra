@@ -1,0 +1,51 @@
+import { describe, it, expect } from 'vitest';
+import { classifyRun, resetDetail } from '../../../apps/desktop/src/main/engine/errors';
+import type { FinalLine } from '../../../apps/desktop/src/main/engine/streamParser';
+
+function fin(p: Partial<FinalLine>): FinalLine {
+  return { subtype: 'success', isError: false, result: 'fine', sessionId: 's', durationMs: 1, inputTokens: 0, outputTokens: 0, ...p };
+}
+
+describe('classifyRun', () => {
+  it('ENOENT on spawn -> not_installed', () => {
+    const e = Object.assign(new Error('spawn claude ENOENT'), { code: 'ENOENT' });
+    expect(classifyRun({ spawnError: e })).toEqual({ error: 'not_installed', errorDetail: 'ENOENT' });
+  });
+
+  it('abort -> stopped, timeout -> timeout, and they win over a missing result', () => {
+    expect(classifyRun({ aborted: true, exitCode: null, signal: 'SIGTERM' }).error).toBe('stopped');
+    expect(classifyRun({ timedOut: true, exitCode: null, signal: 'SIGTERM' }).error).toBe('timeout');
+  });
+
+  it('not signed in, from the result or stderr', () => {
+    expect(classifyRun({ final: fin({ isError: true, result: 'Invalid API key · Please run /login' }), exitCode: 1 }).error).toBe('not_signed_in');
+    expect(classifyRun({ stderr: 'Error: Not logged in. Run claude and use /login', exitCode: 1 }).error).toBe('not_signed_in');
+  });
+
+  it('B4 usage limit -> rate_limited with the reset time', () => {
+    expect(classifyRun({ final: fin({ isError: true, result: "5-hour limit reached ∙ resets 3pm (Europe/London)" }), exitCode: 1 }))
+      .toEqual({ error: 'rate_limited', errorDetail: 'resets 3pm (Europe/London)' });
+    expect(classifyRun({ final: fin({ isError: false, result: "You've hit your limit · resets 11:30pm" }), exitCode: 0 }))
+      .toEqual({ error: 'rate_limited', errorDetail: 'resets 11:30pm' });
+    const epoch = classifyRun({ final: fin({ isError: true, result: 'Claude AI usage limit reached|1767225600' }), exitCode: 1 });
+    expect(epoch).toEqual({ error: 'rate_limited', errorDetail: 'resets 2026-01-01T00:00:00.000Z' });
+  });
+
+  it('does not mistake an answer that talks about rate limits for a limit', () => {
+    const r = classifyRun({ final: fin({ result: 'This repo implements a rate limit middleware that returns 429 when the usage limit is hit.' }), exitCode: 0 });
+    expect(r).toEqual({});
+  });
+
+  it('B3 exit without a result line -> crashed', () => {
+    expect(classifyRun({ exitCode: 1, signal: null, stderr: '' })).toMatchObject({ error: 'crashed' });
+    expect(classifyRun({ exitCode: 0, signal: null })).toMatchObject({ error: 'crashed' });
+  });
+
+  it('error result subtype -> crashed with the subtype', () => {
+    expect(classifyRun({ final: fin({ isError: true, subtype: 'error_max_turns', result: '' }), exitCode: 1 })).toEqual({ error: 'crashed', errorDetail: 'error_max_turns' });
+  });
+
+  it('resetDetail returns undefined when there is no time', () => {
+    expect(resetDetail('usage limit reached')).toBeUndefined();
+  });
+});
