@@ -21,6 +21,11 @@ describe('extractLastJson', () => {
     expect(extractLastJson(t)).toEqual({ note: 'a } b { c " }', n: { d: [1, { e: '}' }] } });
   });
 
+  it('a stray unmatched "{" in prose before the real object does not hide it', () => {
+    expect(extractLastJson('it said "{ unmatched and {"a":1}')).toEqual({ a: 1 });
+    expect(extractLastJson('{ oops { and then {"b":2} done')).toEqual({ b: 2 });
+  });
+
   it('handles fences with no language and CRLF', () => {
     expect(extractLastJson('```\r\n{"a":true}\r\n```')).toEqual({ a: true });
   });

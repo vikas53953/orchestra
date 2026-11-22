@@ -83,10 +83,11 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function signalGroup(pid: number, sig: NodeJS.Signals): void {
+function signalGroup(pid: number, sig: NodeJS.Signals, groupOnly = false): void {
   try {
     process.kill(-pid, sig);
   } catch {
+    if (groupOnly) return;
     // group already gone; fall back to the pid itself
     try {
       process.kill(pid, sig);
@@ -107,27 +108,31 @@ function taskkill(pid: number): Promise<void> {
 /**
  * Kill pid and all its descendants. Resolves once the tree is gone or `timeoutMs` has passed.
  * posix: SIGTERM to the group, SIGKILL after `graceMs`.
+ * `groupOnly` (posix, for a leader that has already exited): only the process group led by pid is
+ * considered and signalled, never pid itself, so a recycled pid is left alone; no live non-zombie
+ * group member means nothing is signalled at all.
  */
-export async function treeKill(pid: number, opts: { graceMs?: number; timeoutMs?: number } = {}): Promise<void> {
+export async function treeKill(pid: number, opts: { graceMs?: number; timeoutMs?: number; groupOnly?: boolean } = {}): Promise<void> {
   const graceMs = opts.graceMs ?? 1000;
   const timeoutMs = Math.max(opts.timeoutMs ?? 2000, graceMs);
   if (process.platform === 'win32') {
     await taskkill(pid);
     return;
   }
-  const alive = (): boolean => groupAlive(pid) || isProcessAlive(pid);
+  const groupOnly = opts.groupOnly === true;
+  const alive = (): boolean => groupAlive(pid) || (!groupOnly && isProcessAlive(pid));
   if (!alive()) return;
-  signalGroup(pid, 'SIGTERM');
+  signalGroup(pid, 'SIGTERM', groupOnly);
   const start = Date.now();
   let killed = false;
   while (alive()) {
     const t = Date.now() - start;
     if (!killed && t >= graceMs) {
-      signalGroup(pid, 'SIGKILL');
+      signalGroup(pid, 'SIGKILL', groupOnly);
       killed = true;
     }
     if (t >= timeoutMs) {
-      signalGroup(pid, 'SIGKILL');
+      signalGroup(pid, 'SIGKILL', groupOnly);
       return;
     }
     await sleep(25);

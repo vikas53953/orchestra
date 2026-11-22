@@ -12,7 +12,7 @@ function tryParseObject(s: string): unknown | undefined {
   }
 }
 
-/** Every top-level balanced {...} span in text, in order, with its start index. */
+/** Every top-level balanced {...} span in text, in order, with its start index. An unbalanced span is skipped. */
 function braceSpans(text: string): Array<{ start: number; body: string }> {
   const spans: Array<{ start: number; body: string }> = [];
   let depth = 0;
@@ -35,6 +35,13 @@ function braceSpans(text: string): Array<{ start: number; body: string }> {
     } else if (ch === '}' && depth > 0) {
       depth--;
       if (depth === 0) spans.push({ start, body: text.slice(start, i + 1) });
+    }
+    if (i === text.length - 1 && depth > 0) {
+      // the span from `start` never balanced (a stray "{" in prose): rescan from just after it
+      depth = 0;
+      inStr = false;
+      esc = false;
+      i = start;
     }
   }
   return spans;

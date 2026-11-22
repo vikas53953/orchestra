@@ -20,10 +20,13 @@ export interface ClaudeCodeOptions {
   resolveDeps?: ResolveDeps;
 }
 
-/** argv for one run, exactly per architecture.md §4. */
+/**
+ * argv for one run, per architecture.md §4. `-p` is a boolean flag and the prompt is positional, so every
+ * flag comes first, then '--', then the prompt last: a prompt starting with '-' is never parsed as an option.
+ */
 export function buildRunArgs(req: RunRequest, prompt = req.prompt, resumeSessionId = req.resumeSessionId): string[] {
   const args = [
-    '-p', prompt,
+    '-p',
     '--output-format', 'stream-json',
     '--verbose',
     '--permission-mode', req.permissionMode,
@@ -33,6 +36,7 @@ export function buildRunArgs(req: RunRequest, prompt = req.prompt, resumeSession
     '--max-turns', String(req.maxTurns),
   ];
   if (resumeSessionId) args.push('--resume', resumeSessionId);
+  args.push('--', prompt);
   return args;
 }
 
@@ -198,8 +202,9 @@ export class ClaudeCodeEngine implements Engine {
         outcome.exitCode = code;
         outcome.signal = sig;
         // Leftover descendants (e.g. tool subprocesses) must not outlive the run (AC-L1). posix only:
-        // on Windows the pid may already be reused once the parent has exited.
-        if (process.platform !== 'win32' && child.pid !== undefined) void treeKill(child.pid, { graceMs: 200 });
+        // on Windows the pid may already be reused once the parent has exited. groupOnly: the leader is
+        // gone, so only live members of its process group are signalled, never a recycled pid.
+        if (process.platform !== 'win32' && child.pid !== undefined) void treeKill(child.pid, { graceMs: 200, groupOnly: true });
         // 'close' normally follows once stdio drains; don't wait on a pipe held open by a stray grandchild.
         setTimeout(finish, 1000);
       });
@@ -253,7 +258,7 @@ export class ClaudeCodeEngine implements Engine {
     const supportsStreamJson = sem ? sem[0] >= 1 : null;
     let signedIn: boolean | null = null;
     if (opts.signedIn) {
-      const r = await this.capture(['-p', 'Reply with OK', '--output-format', 'json', '--max-turns', '1'], SIGNED_IN_TIMEOUT_MS);
+      const r = await this.capture(['-p', '--output-format', 'json', '--max-turns', '1', '--', 'Reply with OK'], SIGNED_IN_TIMEOUT_MS);
       const final = parseJsonResult(r.stdout, this.log);
       const c = classifyRun({
         ...(r.spawnError ? { spawnError: r.spawnError } : {}),

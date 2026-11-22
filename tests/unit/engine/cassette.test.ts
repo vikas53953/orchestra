@@ -20,7 +20,7 @@ describe('cassettes', () => {
   it('first line of every cassette marks it synthetic', () => {
     for (const f of [J0, LIMIT]) {
       expect(JSON.parse(readFileSync(f, 'utf8').split('\n')[0]!)).toEqual({
-        type: 'orchestra_cassette', synthetic: true, note: "pre-check only; replace with a recording from Vikas's PC",
+        type: 'orchestra_cassette', synthetic: true, note: "pre-check only; replace with a recording from the owner's PC",
       });
     }
   });

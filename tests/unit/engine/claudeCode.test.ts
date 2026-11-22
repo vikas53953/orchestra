@@ -1,5 +1,5 @@
 // Engine tests against tests/unit/engine/fake-claude.mjs, with real delays. Pre-check only:
-// the real CLI is exercised by the real-AI journey on Vikas's PC (test-contract.md §5, D9).
+// the real CLI is exercised by the real-AI journey on the owner's PC (test-contract.md §5, D9).
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -57,7 +57,7 @@ const isPlan = (v: unknown): boolean => typeof v === 'object' && v !== null && t
 describe('ClaudeCodeEngine argv', () => {
   it('builds Team Lead argv exactly per architecture §4/§5', () => {
     expect(buildRunArgs(teamLead())).toEqual([
-      '-p', 'What does this repo do?',
+      '-p',
       '--output-format', 'stream-json',
       '--verbose',
       '--permission-mode', 'plan',
@@ -65,8 +65,29 @@ describe('ClaudeCodeEngine argv', () => {
       '--disallowedTools', 'Edit,Write,Bash,WebFetch',
       '--append-system-prompt', PLAN_SYSTEM,
       '--max-turns', '30',
+      '--', 'What does this repo do?',
     ]);
-    expect(buildRunArgs(teamLead({ resumeSessionId: 'abc' })).slice(-2)).toEqual(['--resume', 'abc']);
+    expect(buildRunArgs(teamLead({ resumeSessionId: 'abc' })).slice(-4)).toEqual(['--resume', 'abc', '--', 'What does this repo do?']);
+  });
+
+  it('a prompt starting with "-" goes after "--" as the last argv element, with no flag after "--"', () => {
+    for (const prompt of ['--help me', '-x', '-p']) {
+      for (const args of [buildRunArgs(teamLead({ prompt })), buildRunArgs(teamLead({ resumeSessionId: 'abc' }), prompt, 'abc')]) {
+        const sep = args.indexOf('--');
+        expect(sep).toBe(args.length - 2);
+        expect(args[args.length - 1]).toBe(prompt);
+        expect(args[0]).toBe('-p');
+        expect(args.lastIndexOf('--')).toBe(sep);
+      }
+    }
+  });
+
+  it('a run with a prompt like "--help me" succeeds against a CLI that rejects unknown options', async () => {
+    const { eng, argvFile } = engine('happy', { FAKE_CLAUDE_STRICT_ARGV: '1', FAKE_CLAUDE_DELAY_MS: '200' });
+    const r = await eng.run(teamLead({ prompt: '--help me' }), () => {}, new AbortController().signal);
+    expect(r.ok).toBe(true);
+    const argv = argvs(argvFile)[0]!;
+    expect(argv.slice(-2)).toEqual(['--', '--help me']);
   });
 
   it('passes user text as one argv element, untouched (no shell)', async () => {
@@ -198,6 +219,14 @@ describe('ClaudeCodeEngine probe', () => {
     const { eng } = engine('happy');
     expect(await eng.probe({ signedIn: true })).toEqual({ installed: true, version: '2.1.0', signedIn: true, supportsStreamJson: true });
     expect(await eng.probe()).toEqual({ installed: true, version: '2.1.0', signedIn: null, supportsStreamJson: true });
+  });
+
+  it('sign-in check puts the prompt after "--" (strict CLI)', async () => {
+    const { eng, argvFile } = engine('happy', { FAKE_CLAUDE_STRICT_ARGV: '1' });
+    expect(await eng.probe({ signedIn: true })).toMatchObject({ signedIn: true });
+    const check = argvs(argvFile).find((a) => a.includes('-p'))!;
+    expect(check[0]).toBe('-p');
+    expect(check.slice(-2)).toEqual(['--', 'Reply with OK']);
   });
 
   it('B8 old Claude Code version -> supportsStreamJson false', async () => {

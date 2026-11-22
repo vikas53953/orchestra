@@ -37,7 +37,7 @@ const LIMIT = [
   /\b429\b/,
 ];
 
-/** A short result that IS a usage-limit notice (some CLI builds send it with is_error false). */
+/** A short result of a FAILED run (is_error or nonzero exit) that IS a usage-limit notice. */
 const LIMIT_NOTICE = /^\s*(claude ai usage limit reached|you'?ve hit your (usage )?limit|[\w -]*limit reached\s*[∙·•|:-])/i;
 
 /** The reset time as the CLI wrote it: "resets 3pm (Europe/London)" or the epoch after "usage limit reached|". */
@@ -71,13 +71,15 @@ export function classifyRun(o: RunOutcome): Classified {
   const stderr = o.stderr ?? '';
   const failed = !o.final || o.final.isError || (o.exitCode != null && o.exitCode !== 0);
 
-  if (resultText.length < 400 && LIMIT_NOTICE.test(resultText)) {
+  if (failed && resultText.length < 400 && LIMIT_NOTICE.test(resultText)) {
     return { error: 'rate_limited', errorDetail: resetDetail(resultText) ?? resultText.trim() };
   }
 
   if (failed) {
     const hay = `${resultText}\n${stderr}`;
-    if (matchesAny(hay, AUTH)) return { error: 'not_signed_in', errorDetail: firstLine(resultText || stderr) };
+    // A successful result (is_error false) that mentions /login is an answer, not an auth failure.
+    const authFailed = !o.final || o.final.isError;
+    if (authFailed && matchesAny(hay, AUTH)) return { error: 'not_signed_in', errorDetail: firstLine(resultText || stderr) };
     if (matchesAny(hay, LIMIT)) {
       return { error: 'rate_limited', errorDetail: resetDetail(hay) ?? firstLine(resultText || stderr) };
     }
