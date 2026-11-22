@@ -1,0 +1,90 @@
+{
+  "pr": 8,
+  "headSha": "79b1e0ed2d0ba7b56e4af833828141e4b0f229b1",
+  "baseSha": "83e04e92e5c0c6ede2dd7f2c156cf035c2545575",
+  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45033079155",
+  "outcomes": {
+    "build": "success",
+    "e2e": "not-run",
+    "installer": "success",
+    "typecheck": "success",
+    "tokens": "success",
+    "unit": "success",
+    "red-proof": "not-run",
+    "mutation": "not-run",
+    "evidence": "success"
+  },
+  "rows": [
+    {
+      "name": "typecheck",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "tokens",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "unit",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "red-proof",
+      "outcome": "not-run",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "not applicable: this PR does not change both unit tests and app source"
+    },
+    {
+      "name": "mutation",
+      "outcome": "not-run",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "ran nothing: no mutation target files on this branch yet"
+    },
+    {
+      "name": "build",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "e2e",
+      "outcome": "not-run",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "ran nothing: no tests/e2e journeys on this branch yet"
+    },
+    {
+      "name": "installer",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "evidence",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "real-ai",
+      "outcome": "",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "UNVERIFIED until run on owner's PC (D9)"
+    }
+  ],
+  "digests": {}
+}
