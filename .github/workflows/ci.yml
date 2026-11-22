@@ -6,6 +6,9 @@ on:
     branches: [main]
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   guard:
     name: guard (spec lock + layers)
@@ -19,8 +22,51 @@ jobs:
           node-version: 22
       - run: node tools/spec-guard.mjs verify
       - run: node tools/layers-check.mjs
-      - name: locked files need a CR id
+      - name: locked files need an approved CR
         if: github.event_name == 'pull_request'
         env:
           PR_BODY: ${{ github.event.pull_request.body }}
         run: node tools/spec-guard.mjs pr ${{ github.event.pull_request.base.sha }}
+
+  windows:
+    name: windows (types, tokens, unit, build, e2e on cassettes, installer)
+    needs: guard
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint:tokens
+      - run: npm test
+      - name: red proof (changed tests must fail on the base code)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node tools/red-proof.mjs "$BASE_SHA"
+      - name: mutation testing (planner, parser, validators; break below 70%)
+        shell: bash
+        run: |
+          if ls apps/desktop/src/main/engine/streamParser.ts >/dev/null 2>&1; then npm run mutation; else echo "mutation: no target files yet"; fi
+      - run: npm run build
+      - name: e2e journeys on recorded replies (pre-check only; real AI runs on Vikas's PC, D9)
+        shell: bash
+        run: |
+          if ls tests/e2e/*.spec.ts >/dev/null 2>&1; then npx playwright test --trace off; else echo "e2e: no journeys on this branch yet"; fi
+      - name: installer
+        run: npx electron-builder --win nsis --x64 --publish never
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: orchestra-windows-${{ github.sha }}
+          path: |
+            dist/*.exe
+            test-results/
+          retention-days: 14
