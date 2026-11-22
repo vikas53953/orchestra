@@ -48,9 +48,9 @@ jobs:
       - name: red proof (changed tests must fail on the base code)
         if: github.event_name == 'pull_request'
         shell: bash
-        run: |
-          git fetch --no-tags --depth=200 origin ${{ github.event.pull_request.base.ref }}
-          node tools/red-proof.mjs ${{ github.event.pull_request.base.sha }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node tools/red-proof.mjs "$BASE_SHA"
       - name: mutation testing (planner, parser, validators; break below 70%)
         shell: bash
         run: |

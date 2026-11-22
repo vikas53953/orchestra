@@ -26,9 +26,10 @@ try {
   console.log(out.split('\n').slice(-25).join('\n'));
   if (r.status === 0) {
     console.error('RED PROOF FAILED: the changed tests already pass on the base code, so they do not prove this change.');
-    process.exit(1);
+    process.exitCode = 1; // fall through so the finally block removes the temp worktree
+  } else {
+    console.log(`red proof: ${tests.length} changed test file(s) fail on base ${base.slice(0, 7)} as expected (status ${r.status})`);
   }
-  console.log(`red proof: ${tests.length} changed test file(s) fail on base ${base.slice(0, 7)} as expected (status ${r.status})`);
 } finally {
   sh('git', ['worktree', 'remove', '--force', dir]);
   rmSync(dir, { recursive: true, force: true });
