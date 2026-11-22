@@ -109,6 +109,17 @@ describe('labels: CONFIRMED / REPORTED / UNVERIFIED', () => {
     expect(by.e2e).toMatchObject({ result: 'skipped', label: 'UNVERIFIED' });
     expect(by.installer).toMatchObject({ result: 'not run', label: 'UNVERIFIED' });
   });
+  it('a step that ran nothing (no target files yet) is "not run · UNVERIFIED" with the reason, never pass', () => {
+    const rows = checkRows({ mutation: 'not-run', e2e: 'not-run', 'red-proof': 'not-run', build: 'not-run' });
+    const by = Object.fromEntries(rows.map((r: { name: string }) => [r.name, r]));
+    for (const g of ['mutation', 'e2e', 'red-proof', 'build']) expect(by[g]).toMatchObject({ result: 'not run', label: 'UNVERIFIED' });
+    expect(by.mutation.note).toMatch(/no mutation target files/);
+    expect(by.e2e.note).toMatch(/no tests\/e2e journeys/);
+    expect(by['red-proof'].note).toMatch(/not applicable/);
+    expect(by.build.note).toMatch(/ran nothing/);
+    expect(buildComment({ repo: 'o/r', pr: 1, headSha: 'a'.repeat(40), baseSha: 'b', runUrl: 'u', rows, digests: {}, numbers: null, shots: null, rawBase: 'r' }))
+      .toMatch(/\| mutation \| not run \| UNVERIFIED \| ran nothing: no mutation target files/);
+  });
   it('real AI is always UNVERIFIED in CI until run on the owner\'s PC; a linked record makes it REPORTED', () => {
     const real = checkRows({}).find((r: { name: string }) => r.name === 'real-ai');
     expect(real).toMatchObject({ label: 'UNVERIFIED' });

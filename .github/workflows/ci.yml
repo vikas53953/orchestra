@@ -40,10 +40,11 @@ jobs:
       typecheck: ${{ steps.typecheck.outcome }}
       tokens: ${{ steps.tokens.outcome }}
       unit: ${{ steps.unit.outcome }}
-      red_proof: ${{ steps.red_proof.outcome }}
-      mutation: ${{ steps.mutation.outcome }}
+      # A step that exited 0 without running its gate sets ran=false and reports not-run (never pass).
+      red_proof: ${{ steps.red_proof.outputs.ran == 'false' && 'not-run' || steps.red_proof.outcome }}
+      mutation: ${{ steps.mutation.outputs.ran == 'false' && 'not-run' || steps.mutation.outcome }}
       build: ${{ steps.build.outcome }}
-      e2e: ${{ steps.e2e.outcome }}
+      e2e: ${{ steps.e2e.outputs.ran == 'false' && 'not-run' || steps.e2e.outcome }}
       installer: ${{ steps.installer.outcome }}
     defaults:
       run:
@@ -73,12 +74,14 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' && github.event_name == 'pull_request' }}
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: node tools/red-proof.mjs "$BASE_SHA" 2>&1 | tee gate-logs/red-proof.log
+        run: |
+          node tools/red-proof.mjs "$BASE_SHA" 2>&1 | tee gate-logs/red-proof.log
+          if grep -q "red proof: not applicable" gate-logs/red-proof.log; then echo "ran=false" >> "$GITHUB_OUTPUT"; fi
       - name: mutation testing (planner, parser, validators; break below 70%)
         id: mutation
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
-          if ls apps/desktop/src/main/engine/streamParser.ts >/dev/null 2>&1; then npm run mutation 2>&1 | tee gate-logs/mutation.log; else echo "mutation: no target files yet"; fi
+          if ls apps/desktop/src/main/engine/streamParser.ts >/dev/null 2>&1; then npm run mutation 2>&1 | tee gate-logs/mutation.log; else echo "mutation: no target files yet"; echo "ran=false" >> "$GITHUB_OUTPUT"; fi
       - id: build
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run build 2>&1 | tee gate-logs/build.log
@@ -88,7 +91,7 @@ jobs:
         env:
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: gate-logs/e2e-junit.xml
         run: |
-          if ls tests/e2e/*.spec.ts >/dev/null 2>&1; then npx playwright test --trace off --reporter=list,junit 2>&1 | tee gate-logs/e2e.log; else echo "e2e: no journeys on this branch yet"; fi
+          if ls tests/e2e/*.spec.ts >/dev/null 2>&1; then npx playwright test --trace off --reporter=list,junit 2>&1 | tee gate-logs/e2e.log; else echo "e2e: no journeys on this branch yet"; echo "ran=false" >> "$GITHUB_OUTPUT"; fi
       - name: installer
         id: installer
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}

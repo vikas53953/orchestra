@@ -94,7 +94,14 @@ export function mdCode(s, max = 120) {
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 }
 
-const RESULT = { success: 'pass', failure: 'FAIL', cancelled: 'cancelled', skipped: 'skipped' };
+// A step that exits 0 without running its gate reports 'not-run' (ci.yml step output ran=false).
+const NOT_RUN = {
+  mutation: 'ran nothing: no mutation target files on this branch yet',
+  e2e: 'ran nothing: no tests/e2e journeys on this branch yet',
+  'red-proof': 'not applicable: this PR does not change both unit tests and app source',
+};
+
+const RESULT = { 'not-run': 'not run', success: 'pass', failure: 'FAIL', cancelled: 'cancelled', skipped: 'skipped' };
 
 /**
  * One row per gate from the real step outcomes of this CI run.
@@ -105,7 +112,7 @@ export function checkRows(outcomes, opts = {}) {
     const o = outcomes[name] ?? '';
     const result = RESULT[o] ?? 'not run';
     const label = o === 'success' || o === 'failure' ? 'CONFIRMED' : 'UNVERIFIED';
-    const note = name === 'e2e' && o ? 'recorded replies only (pre-check)' : '';
+    const note = o === 'not-run' ? NOT_RUN[name] ?? 'step ran nothing' : name === 'e2e' && o ? 'recorded replies only (pre-check)' : '';
     return { name, outcome: o, result, label, note };
   });
   rows.push(opts.realAiRecord
