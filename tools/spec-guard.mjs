@@ -1,4 +1,4 @@
-// Spec guard: locked files (docs/spec/**, tests/e2e/**, tests/golden/**) may change only with a CR id.
+// Spec guard: locked files (docs/spec/**, tests/e2e/**, tests/golden/**, this script) change only with an approved CR.
 // Usage: node tools/spec-guard.mjs verify            -> checks MANIFEST.sha256 matches the files
 //        node tools/spec-guard.mjs write             -> regenerates MANIFEST.sha256 (only in a CR PR)
 //        node tools/spec-guard.mjs pr <base-sha>     -> fails if locked files changed vs base and PR body lacks "CR-<n>"
@@ -47,14 +47,23 @@ if (cmd === 'write') {
   }
   console.log(`spec guard: ${got.trim().split('\n').length} locked files match the manifest`);
 } else if (cmd === 'pr') {
-  const changed = execFileSync('git', ['diff', '--name-only', `${arg}...HEAD`], { encoding: 'utf8' })
+  const changed = execFileSync('git', ['diff', '--no-renames', '--name-only', `${arg}...HEAD`], { encoding: 'utf8' })
     .split('\n').filter(Boolean)
-    .filter((p) => LOCKED.some((d) => p.startsWith(d + '/')));
+    .filter((p) => LOCKED.some((d) => p.startsWith(d + '/')) || p === 'tools/spec-guard.mjs');
   const body = process.env.PR_BODY ?? '';
-  if (changed.length && !/\bCR-\d+\b/.test(body) && !/\bSPEC-LOCK\b/.test(body)) {
-    console.error('SPEC GUARD: this PR changes locked files without a CR id in the PR body:');
-    for (const p of changed) console.error('  ' + p);
-    process.exit(1);
+  if (changed.length) {
+    // A CR id in the body must point at an approval record: docs/change-requests/CR-<n>.md with Vikas's own words.
+    const ids = [...body.matchAll(/\bCR-(\d+)\b/g)].map((m) => m[1]);
+    const ok = ids.some((n) => {
+      const f = join(ROOT, `docs/change-requests/CR-${n}.md`);
+      return existsSync(f) && /^Approved by Vikas: .+\S/m.test(readFileSync(f, 'utf8'));
+    });
+    if (!ok) {
+      console.error('SPEC GUARD: this PR changes locked files without an approved CR.');
+      console.error('Put "CR-<n>" in the PR body and add docs/change-requests/CR-<n>.md with a line "Approved by Vikas: <his words, date>".');
+      for (const p of changed) console.error('  ' + p);
+      process.exit(1);
+    }
   }
   console.log(`spec guard: ${changed.length} locked file(s) changed; CR check ok`);
 } else {
