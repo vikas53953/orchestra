@@ -1,4 +1,4 @@
-// One lane (F3): face, name in crew colour, latest step, working dot while running.
+// One lane (F3): face in crew colour, name in white, latest step, working dot while running.
 import { t, type CopyKey } from '../../shared/copy';
 import { Face, type FaceState } from '../components/Face';
 import { Icon } from '../components/Icon';

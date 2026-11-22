@@ -15,7 +15,7 @@
 .o-panel-x { margin-left: auto; }
 .o-panel-sect { font: var(--o-w-strong) var(--o-fs-meta)/16px var(--o-sans); color: var(--o-t3); padding: 14px var(--o-s4) 6px; }
 .o-log { list-style: none; margin: 0; padding: var(--o-s1) var(--o-s4) var(--o-s4); overflow-y: auto; display: flex; flex-direction: column; gap: 2px; scrollbar-width: thin; scrollbar-color: var(--o-hover) transparent; }
-.o-log li { display: grid; grid-template-columns: 64px 1fr; gap: var(--o-s2); font: var(--o-w-body) var(--o-fs-meta)/20px var(--o-sans); color: var(--o-t2); }
+.o-log li { display: grid; grid-template-columns: 52px 1fr; gap: var(--o-s2); font: var(--o-w-body) var(--o-fs-meta)/20px var(--o-sans); color: var(--o-t2); }
 .o-log-tm { color: var(--o-t4); font-variant-numeric: tabular-nums; }
 .o-log-tx { overflow-wrap: anywhere; user-select: text; }
 .o-panel-quiet { margin: 0; padding: 6px var(--o-s4); color: var(--o-t3); font: var(--o-w-body) var(--o-fs-meta)/18px var(--o-sans); }

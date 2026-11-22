@@ -6,10 +6,7 @@
 }
 .o-lane:hover:not(.is-sel) { background: var(--o-tint); }
 .o-lane.is-sel { background: var(--o-raised); --o-ring: var(--o-raised); }
-.o-lane-nm { font-weight: var(--o-w-strong); }
-.o-lane.is-TeamLead .o-lane-nm { color: var(--o-lead); }
-.o-lane.is-Builder .o-lane-nm { color: var(--o-build); }
-.o-lane.is-Tester .o-lane-nm { color: var(--o-test); }
+.o-lane-nm { font-weight: var(--o-w-strong); color: var(--o-t1); }
 .o-lane-st { color: var(--o-t2); display: flex; align-items: center; gap: var(--o-s2); min-width: 0; }
 .o-lane-st.is-fail { color: var(--o-fail); }
 .o-lane-ch { color: var(--o-t3); font-size: var(--o-fs-meta); font-variant-numeric: tabular-nums; }

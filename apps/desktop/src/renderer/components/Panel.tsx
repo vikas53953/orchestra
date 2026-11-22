@@ -2,7 +2,7 @@
 import { t, type CopyKey } from '../../shared/copy';
 import type { Role } from '../../shared/types';
 import type { LaneView } from '../store/lanes';
-import { clock } from '../store/format';
+import { clockShort } from '../store/format';
 import { Icon } from './Icon';
 import './panel.css';
 
@@ -22,7 +22,7 @@ export function Panel({ open, role, lane, onClose }: { open: boolean; role: Role
       {history.length ? (
         <ol className="o-log">
           {history.map((h, i) => (
-            <li key={i}><span className="o-log-tm">{clock(h.ts)}</span><span className="o-log-tx">{h.text}</span></li>
+            <li key={i}><span className="o-log-tm">{clockShort(h.ts)}</span><span className="o-log-tx">{h.text}</span></li>
           ))}
         </ol>
       ) : (
