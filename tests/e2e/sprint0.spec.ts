@@ -5,13 +5,14 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   launch, makeSampleRepo, pickRepo, ask, gitStatus, tempDir, CASSETTE, REAL_AI, claudePids,
-  enginePids, engineLeftAfter, hardKill, snapshot, snapshotDiff,
+  enginePids, engineLeftAfter, hardKill, snapshot, snapshotDiff, warmUpLaunch,
 } from './harness';
 
 const J0 = CASSETTE('j0-ask-sample-repo.jsonl');
 const REAL_FILES = /src\/math\.js|test\/math\.test\.js|package\.json|README\.md/;
 
 test('AC-S0.1 app opens on Home within 3 s', async () => {
+  await warmUpLaunch(); // CR-3 amendment (owner, 17:24 UTC): untimed warm-up; the timed launch below keeps the full 3 s
   const t0 = Date.now(); // CR-3: the 3 s budget starts before Electron is launched, not after the window exists
   const l = await launch({ cassette: J0 });
   const left = 3_000 - (Date.now() - t0);

@@ -54,6 +54,17 @@ export async function launch(opts: { dataDir?: string; env?: Record<string, stri
   return { app, page, dataDir };
 }
 
+/**
+ * One untimed launch so the timed AC-S0.1 launch is a warm process start (owner decision 2026-11-22 17:24 UTC,
+ * CR-3 amendment): a fresh CI runner's first Electron start includes a one-off antivirus scan of the new binary.
+ * The first-ever launch after install is timed on the owner's PC (test-contract §6 step 1).
+ */
+export async function warmUpLaunch(): Promise<void> {
+  const l = await launch({ dataDir: tempDir('orch-warmup-') });
+  await l.page.waitForLoadState('domcontentloaded');
+  await l.app.close();
+}
+
 /** Make the folder picker return `dir` without showing a native dialog. */
 export async function stubFolderPicker(app: ElectronApplication, dir: string): Promise<void> {
   await app.evaluate(({ dialog }, p) => {
