@@ -1,0 +1,52 @@
+/* Base: type, buttons, dots, chips. Round 3: greys + one blue, weight 350, fills not borders, pill buttons. */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0; background: var(--o-page); color: var(--o-t1);
+  font: var(--o-w-body) var(--o-fs-small)/var(--o-lh-small) var(--o-sans);
+  -webkit-font-smoothing: antialiased; overflow: hidden; user-select: none;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--o-focus); outline-offset: 2px; }
+.o-ic { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+code { font: 400 var(--o-fs-meta)/var(--o-lh-meta) var(--o-mono); background: var(--o-tint); border-radius: 4px; padding: 0 var(--o-s1); }
+.o-grow { flex: 1; }
+.o-ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+/* buttons: white pill = primary */
+.o-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 28px; padding: 0 var(--o-s3);
+  border: 0; border-radius: var(--o-r-pill); font: var(--o-w-strong) var(--o-fs-small)/1 var(--o-sans); white-space: nowrap; cursor: pointer;
+  transition: filter 120ms;
+}
+.o-btn:hover { filter: brightness(0.92); }
+.o-btn.is-pri { background: var(--o-pill-bg); color: var(--o-pill-text); }
+.o-btn.is-gh { background: var(--o-tint); color: var(--o-t1); }
+.o-btn.is-tx { background: transparent; color: var(--o-t2); padding: 0 6px; }
+.o-btn:disabled { cursor: default; opacity: 0.5; filter: none; }
+.o-iconbtn {
+  display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 6px;
+  background: transparent; color: var(--o-t3); cursor: pointer;
+}
+.o-iconbtn:hover { background: var(--o-tint); color: var(--o-t1); }
+.o-iconbtn.is-on { background: var(--o-raised); color: var(--o-t1); box-shadow: inset 0 0 0 1px var(--o-card-edge); }
+
+/* status dots: the only things that pulse */
+.o-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; background: var(--o-t3); }
+.o-dot.is-done { background: var(--o-done); }
+.o-dot.is-fail { background: var(--o-fail); }
+.o-dot.is-needs { background: var(--o-needs); }
+.o-dot.is-blue { background: var(--o-blue); }
+.o-dot.is-pulse { animation: o-pulse var(--o-m-dot) ease-in-out infinite; }
+@keyframes o-pulse { 50% { opacity: 0.35; } }
+@keyframes o-fade { from { opacity: 0; } to { opacity: 1; } }
+.o-xfade { animation: o-fade var(--o-m-status) ease-out; }
+
+/* skeleton (C6) */
+.o-sk { display: block; background: var(--o-tint); border-radius: 6px; animation: o-skp var(--o-m-dot) ease-in-out infinite; }
+@keyframes o-skp { 50% { opacity: 0.5; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .o-dot.is-pulse, .o-sk { animation: none; }
+  .o-xfade { animation: none; }
+}

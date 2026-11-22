@@ -1,0 +1,35 @@
+.o-home { flex: 1; overflow-y: auto; display: flex; justify-content: center; padding: calc(var(--o-s7) * 3) var(--o-s5) var(--o-s7); }
+.o-home-col { width: 720px; max-width: 100%; display: flex; flex-direction: column; gap: var(--o-s4); }
+.o-h1 { margin: 0; font: var(--o-w-strong) var(--o-fs-h1)/var(--o-lh-h1) var(--o-sans); letter-spacing: -0.015em; color: var(--o-t1); }
+.o-home-repo { display: flex; margin-top: calc(var(--o-s1) * -1); }
+.o-home-err { margin: 0; padding: 0 var(--o-s4); color: var(--o-fail); font: var(--o-w-body) var(--o-fs-small)/var(--o-lh-small) var(--o-sans); }
+
+.o-repo-chip {
+  display: inline-flex; align-items: center; gap: var(--o-s2); height: 30px; padding: 0 10px 0 var(--o-s3); border: 0; border-radius: var(--o-r-pill);
+  background: var(--o-raised); box-shadow: inset 0 0 0 1px var(--o-card-edge); color: var(--o-t2); cursor: pointer;
+  font: var(--o-w-body) var(--o-fs-small)/1 var(--o-sans); min-width: 0;
+}
+.o-repo-chip:hover { color: var(--o-t1); }
+.o-repo-chip .o-ic { color: var(--o-t3); }
+.o-repo-chip.is-bad { color: var(--o-fail); }
+.o-repo-name { max-width: var(--o-name-col); line-height: 18px; }
+
+/* composer pill */
+.o-pcomp {
+  height: var(--o-composer-h); border-radius: var(--o-r-pill); background: var(--o-raised); box-shadow: inset 0 0 0 1px var(--o-line);
+  display: flex; align-items: center; gap: 10px; padding: 0 var(--o-s2) 0 18px;
+}
+.o-pcomp.is-off { background: var(--o-well); }
+.o-pcomp-input {
+  flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; padding: 0; color: var(--o-t1);
+  font: var(--o-w-body) var(--o-fs-body)/var(--o-lh-body) var(--o-sans); user-select: text;
+}
+.o-pcomp-input::placeholder { color: var(--o-t3); }
+.o-pcomp-input:disabled { cursor: default; }
+.o-pcomp-input:disabled::placeholder { color: var(--o-t4); }
+.o-pcomp:focus-within { box-shadow: inset 0 0 0 1px var(--o-t4); }
+.o-send {
+  width: 28px; height: 28px; border-radius: 50%; border: 0; display: grid; place-items: center; flex-shrink: 0;
+  background: var(--o-hover); color: var(--o-t2); cursor: default;
+}
+.o-send.is-on { background: var(--o-pill-bg); color: var(--o-pill-text); cursor: pointer; }
