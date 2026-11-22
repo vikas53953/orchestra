@@ -1,7 +1,8 @@
 // Find the Claude Code CLI to spawn (architecture.md §4, §10). Never routes user text through cmd.exe:
-// on Windows a `claude.cmd` npm shim is replaced by `node <cli.js>` from the package it points to.
+// on Windows a `claude.cmd` npm shim is replaced by what it points to: the package's "bin" entry (an .exe runs
+// directly, a .js runs through node), else the target written in the shim, else the known layouts.
 import { execFile } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { win32 } from 'node:path';
 
 export interface ResolvedCli {
@@ -15,6 +16,8 @@ export interface ResolveDeps {
   /** lines printed by `where claude` (win32) — empty when not found */
   where: (name: string) => Promise<string[]>;
   exists: (p: string) => boolean;
+  /** file text, or null when it can't be read */
+  readText: (p: string) => string | null;
   /** a node binary to run JS entry points with */
   node: string;
 }
@@ -32,6 +35,7 @@ export const defaultResolveDeps: ResolveDeps = {
   platform: process.platform,
   where: whereDefault,
   exists: existsSync,
+  readText: (p) => { try { return readFileSync(p, 'utf8'); } catch { return null; } },
   node: 'node',
 };
 
@@ -40,6 +44,33 @@ const JS_ENTRY = /\.(c|m)?js$/i;
 function nodeFor(shimDir: string, deps: ResolveDeps): string {
   const local = win32.join(shimDir, 'node.exe');
   return deps.exists(local) ? local : deps.node;
+}
+
+/** Where an npm `claude.cmd` shim can lead, most specific first. Every path stays inside the shim's folder. */
+function shimTargets(shim: string, deps: ResolveDeps): string[] {
+  const { dirname, join, resolve, relative, isAbsolute } = win32;
+  const dir = dirname(shim);
+  const pkg = join(dir, 'node_modules', '@anthropic-ai', 'claude-code');
+  const inside = (base: string, p: string) => { const r = relative(base, p); return !!r && !r.startsWith('..') && !isAbsolute(r); };
+  const out: string[] = [];
+  const json = deps.readText(join(pkg, 'package.json'));
+  if (json) {
+    try {
+      const bin: unknown = (JSON.parse(json) as { bin?: unknown }).bin;
+      const rel = typeof bin === 'string' ? bin : bin && typeof bin === 'object' ? (bin as Record<string, unknown>).claude : undefined;
+      if (typeof rel === 'string') { const p = resolve(pkg, rel); if (inside(pkg, p)) out.push(p); }
+    } catch { /* unreadable package.json: try the shim and known layouts */ }
+  }
+  const text = deps.readText(shim);
+  // Every quoted "%dp0%\…" / "%~dp0\…" path, skipping node.exe (old shims name it before the real target).
+  for (const m of text?.matchAll(/"%~?dp0%?\\([^"%\r\n]+\.(?:exe|c?m?js))"/gi) ?? []) {
+    if (!m[1]) continue;
+    const p = resolve(dir, m[1]);
+    if (!/^node\.exe$/i.test(win32.basename(p)) && inside(dir, p)) out.push(p);
+  }
+  out.push(join(pkg, 'bin', 'claude.exe'), join(pkg, 'cli.js'));
+  // Only an .exe (run directly) or a JS file (run through node) can be spawned without a shell.
+  return [...new Set(out)].filter((p) => /\.exe$/i.test(p) || JS_ENTRY.test(p));
 }
 
 export async function resolveClaudeCli(env: NodeJS.ProcessEnv, deps: ResolveDeps = defaultResolveDeps): Promise<ResolvedCli> {
@@ -57,8 +88,10 @@ export async function resolveClaudeCli(env: NodeJS.ProcessEnv, deps: ResolveDeps
   if (exe) return { cmd: exe, prefixArgs: [] };
   for (const shim of found.filter((p) => /\.cmd$/i.test(p))) {
     const dir = dirname(shim);
-    const cli = join(dir, 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
-    if (deps.exists(cli)) return { cmd: nodeFor(dir, deps), prefixArgs: [cli] };
+    for (const target of shimTargets(shim, deps)) {
+      if (!deps.exists(target)) continue;
+      return JS_ENTRY.test(target) ? { cmd: nodeFor(dir, deps), prefixArgs: [target] } : { cmd: target, prefixArgs: [] };
+    }
   }
   // Native installer default location, when PATH has not been refreshed yet.
   const home = env.USERPROFILE;

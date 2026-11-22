@@ -5,6 +5,8 @@ Run by a remote session on Vikas's Windows PC, never in CI. Uses his signed-in C
 ```
 git fetch origin <branch> && git checkout <sha>
 npm ci && npm run build
+# Check node_modules\electron\dist\electron.exe exists before testing. If the Electron download
+# was too slow it is missing, and Playwright then blocks for minutes trying to fetch it.
 set REAL_AI=1
 npx playwright test tests/e2e/sprint0.spec.ts -g "J0" --repeat-each=3 --trace off
 ```
