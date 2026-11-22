@@ -1,0 +1,8 @@
+.o-chip {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: var(--o-r-pill);
+  background: var(--o-tint); color: var(--o-t1); font: var(--o-w-strong) var(--o-fs-meta)/1 var(--o-sans); white-space: nowrap;
+}
+.o-chip-in { display: inline-flex; align-items: center; gap: 6px; }
+.o-chip.is-needs { color: var(--o-needs); background: color-mix(in srgb, var(--o-needs) 12%, transparent); }
+.o-chip.is-fail { color: var(--o-fail); background: color-mix(in srgb, var(--o-fail) 12%, transparent); }
+.o-chip.is-done { color: var(--o-done); background: color-mix(in srgb, var(--o-done) 12%, transparent); }
