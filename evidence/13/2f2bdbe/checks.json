@@ -1,0 +1,90 @@
+{
+  "pr": 13,
+  "headSha": "2f2bdbed131dd03fd8393ed7d6eea4574e24cb8f",
+  "baseSha": "b6afa074708ccb820b3519be2668363748a61b99",
+  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45056096796",
+  "outcomes": {
+    "typecheck": "skipped",
+    "tokens": "skipped",
+    "unit": "skipped",
+    "red-proof": "skipped",
+    "mutation": "skipped",
+    "build": "skipped",
+    "e2e": "skipped",
+    "installer": "skipped",
+    "evidence": "cancelled"
+  },
+  "rows": [
+    {
+      "name": "typecheck",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "tokens",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "unit",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "red-proof",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "mutation",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "build",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "e2e",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": "recorded replies only (pre-check)"
+    },
+    {
+      "name": "installer",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "evidence",
+      "outcome": "cancelled",
+      "result": "cancelled",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "real-ai",
+      "outcome": "",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "UNVERIFIED until run on owner's PC (D9)"
+    }
+  ],
+  "digests": {}
+}
