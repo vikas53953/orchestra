@@ -1,0 +1,90 @@
+{
+  "pr": 14,
+  "headSha": "b64db4ef516de7784c4a9414136df6f536164440",
+  "baseSha": "efa033f4e139747e2a670d0ef732b8f29a81c217",
+  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45059979735",
+  "outcomes": {
+    "e2e": "skipped",
+    "installer": "skipped",
+    "typecheck": "success",
+    "tokens": "success",
+    "unit": "success",
+    "red-proof": "success",
+    "mutation": "cancelled",
+    "build": "skipped",
+    "evidence": "success"
+  },
+  "rows": [
+    {
+      "name": "typecheck",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "tokens",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "unit",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "red-proof",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "mutation",
+      "outcome": "cancelled",
+      "result": "cancelled",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "build",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "e2e",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": "recorded replies only (pre-check)"
+    },
+    {
+      "name": "installer",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "evidence",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "real-ai",
+      "outcome": "",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "UNVERIFIED until run on owner's PC (D9)"
+    }
+  ],
+  "digests": {}
+}
