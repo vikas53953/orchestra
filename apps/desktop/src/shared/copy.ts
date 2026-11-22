@@ -61,6 +61,12 @@ export const COPY = {
   'error.crashed': '{role} stopped unexpectedly.',
   'error.stopped': 'Stopped.',
   'error.tryAgain': 'Try again',
+  // T4 additions
+  'session.meta.started': 'Started {time}',
+  'session.panel.close': 'Close panel',
+  'session.panel.empty': "{role} hasn't started yet.",
+  'setup.status.missing': 'Missing',
+  'setup.status.warn': 'Needed later',
 } as const;
 
 export type CopyKey = keyof typeof COPY;
