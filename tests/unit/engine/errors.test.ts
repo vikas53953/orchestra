@@ -109,9 +109,9 @@ describe('classifyRun: wording variants of a failed run', () => {
     expect(failedWith('Not logged in (usage limit unknown)').error).toBe('not_signed_in');
   });
 
-  it('a long failed result that starts like a notice is a generic limit: detail is its first line, capped', () => {
+  it('a long failed result that starts like a notice is a generic limit, with no detail (CR-4)', () => {
     const long = 'Limit reached: ' + 'x'.repeat(500);
-    expect(failedWith(long)).toEqual({ error: 'rate_limited', errorDetail: long.slice(0, 200) });
+    expect(failedWith(long)).toEqual({ error: 'rate_limited' });
   });
 
   it('an unrelated failure is crashed with its subtype, or with its first line when there is no subtype', () => {
@@ -127,10 +127,10 @@ describe('classifyRun: wording variants of a failed run', () => {
     expect(failedWith(long).errorDetail).toBe(long.slice(0, 200));
   });
 
-  it('a limit in stderr with no reset time uses the first stderr line as detail', () => {
-    expect(classifyRun({ stderr: 'API Error: 429\nretry later', exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'API Error: 429' });
+  it('a limit in stderr with no reset time has no detail (CR-4: raw text never reaches the sentence)', () => {
+    expect(classifyRun({ stderr: 'API Error: 429\nretry later', exitCode: 1 })).toEqual({ error: 'rate_limited' });
     expect(classifyRun({ final: fin({ isError: true, result: 'Server said 429' }), stderr: 'x', exitCode: 1 }))
-      .toEqual({ error: 'rate_limited', errorDetail: 'Server said 429' });
+      .toEqual({ error: 'rate_limited' });
   });
 
   it('a limit with "try again after" gives that as detail', () => {
@@ -151,27 +151,31 @@ describe('classifyRun: limit notice on a failed run (B4)', () => {
     expect(classifyRun({ final: fin({ isError: false, result }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: detail });
   });
 
-  it('a short notice with no time keeps the whole notice text as detail', () => {
-    expect(classifyRun({ final: fin({ isError: true, result: ' 5-hour limit reached ∙ \nUpgrade for more ' }), exitCode: 1 }))
-      .toEqual({ error: 'rate_limited', errorDetail: '5-hour limit reached ∙ \nUpgrade for more' });
-    expect(classifyRun({ final: fin({ isError: true, result: 'Claude AI usage limit reached\nUpgrade' }), exitCode: 1 }))
-      .toEqual({ error: 'rate_limited', errorDetail: 'Claude AI usage limit reached\nUpgrade' });
-    expect(classifyRun({ final: fin({ isError: true, result: "You've hit your limit\nUpgrade" }), exitCode: 1 }))
-      .toEqual({ error: 'rate_limited', errorDetail: "You've hit your limit\nUpgrade" });
-    expect(classifyRun({ final: fin({ isError: true, result: 'Session limit reached:\nUpgrade' }), exitCode: 1 }))
-      .toEqual({ error: 'rate_limited', errorDetail: 'Session limit reached:\nUpgrade' });
+  it('a short notice with no time has no detail (CR-4)', () => {
+    for (const result of [' 5-hour limit reached ∙ \nUpgrade for more ', 'Claude AI usage limit reached\nUpgrade', "You've hit your limit\nUpgrade", 'Session limit reached:\nUpgrade']) {
+      expect(classifyRun({ final: fin({ isError: true, result }), exitCode: 1 })).toEqual({ error: 'rate_limited' });
+    }
   });
 
-  it('a phrase that only resembles a notice gets the generic first-line detail', () => {
+  it.each([
+    ['5-hour limit reached ∙ resets Nov. 22 3pm', 'Nov. 22 3pm'],
+    ['5-hour limit reached ∙ resets Nov. 22, 3pm (Europe/London).', 'Nov. 22, 3pm (Europe/London)'],
+    ['5-hour limit reached ∙ resets 3pm. Upgrade for more', '3pm'],
+    ['Opus weekly limit reached ∙ resets Sept. 3 9am', 'Sept. 3 9am'],
+  ])('CR-4: a month short form keeps the whole time: %s -> %s', (result, detail) => {
+    expect(classifyRun({ final: fin({ isError: true, result }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: detail });
+  });
+
+  it('a phrase that only resembles a notice is still a limit, with no detail (CR-4)', () => {
     // "!" before "limit reached" is not part of a notice's prefix; no separator after it either
-    expect(classifyRun({ final: fin({ isError: true, result: 'Oops! limit reached\nUpgrade' }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'Oops! limit reached' });
-    expect(classifyRun({ final: fin({ isError: true, result: 'limit reached ok\nUpgrade' }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'limit reached ok' });
-    expect(classifyRun({ final: fin({ isError: true, result: 'xx you hit your limit\nUpgrade' }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'xx you hit your limit' });
+    expect(classifyRun({ final: fin({ isError: true, result: 'Oops! limit reached\nUpgrade' }), exitCode: 1 })).toEqual({ error: 'rate_limited' });
+    expect(classifyRun({ final: fin({ isError: true, result: 'limit reached ok\nUpgrade' }), exitCode: 1 })).toEqual({ error: 'rate_limited' });
+    expect(classifyRun({ final: fin({ isError: true, result: 'xx you hit your limit\nUpgrade' }), exitCode: 1 })).toEqual({ error: 'rate_limited' });
   });
 
   it('a "limit reached" phrase that is not a notice is not treated as one', () => {
-    // no separator after "limit reached": falls through to the generic limit words, detail from the text
-    expect(classifyRun({ final: fin({ isError: true, result: 'limit reached because of X' }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'limit reached because of X' });
+    // no separator after "limit reached": falls through to the generic limit words; no time, so no detail (CR-4)
+    expect(classifyRun({ final: fin({ isError: true, result: 'limit reached because of X' }), exitCode: 1 })).toEqual({ error: 'rate_limited' });
     // prose before the phrase that is not a word/space/dash run
     expect(classifyRun({ final: fin({ isError: true, subtype: 'error', result: 'Note: limit reached · resets 3pm' }), exitCode: 1 }))
       .toEqual({ error: 'rate_limited', errorDetail: '3pm' });

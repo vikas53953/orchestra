@@ -192,6 +192,8 @@ describe('errorText (architecture.md §9 copy)', () => {
     ['not_installed', null, 'Claude Code was not found on this PC.'],
     ['not_signed_in', null, 'Claude Code is not signed in. Run `claude` once and sign in.'],
     ['rate_limited', '3pm', 'Claude usage limit reached. Try again after 3pm.'],
+    ['rate_limited', null, 'Claude usage limit reached. Try again later.'],
+    ['rate_limited', '', 'Claude usage limit reached. Try again later.'],
     ['bad_output', null, "Builder's reply couldn't be read."],
     ['stopped', null, 'Stopped.'],
     ['crashed', null, 'Builder stopped unexpectedly.'],
