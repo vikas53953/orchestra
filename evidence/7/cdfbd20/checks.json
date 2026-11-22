@@ -1,0 +1,90 @@
+{
+  "pr": 7,
+  "headSha": "cdfbd207b88ece9cc60f619dbdc7638249ae908a",
+  "baseSha": "64da10ebfa10a2600c197c9be2c96ffbcc30dd21",
+  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45035170588",
+  "outcomes": {
+    "red-proof": "success",
+    "mutation": "success",
+    "build": "success",
+    "e2e": "not-run",
+    "installer": "success",
+    "typecheck": "success",
+    "tokens": "success",
+    "unit": "success",
+    "evidence": "success"
+  },
+  "rows": [
+    {
+      "name": "typecheck",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "tokens",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "unit",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "red-proof",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "mutation",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "build",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "e2e",
+      "outcome": "not-run",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "ran nothing: no tests/e2e journeys on this branch yet"
+    },
+    {
+      "name": "installer",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "evidence",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "real-ai",
+      "outcome": "",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "UNVERIFIED until run on owner's PC (D9)"
+    }
+  ],
+  "digests": {}
+}
