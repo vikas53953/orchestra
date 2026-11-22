@@ -26,6 +26,25 @@ describe('extractLastJson', () => {
     expect(extractLastJson('{ oops { and then {"b":2} done')).toEqual({ b: 2 });
   });
 
+  it('a stray "{" followed by a stray quote does not hide the real object', () => {
+    expect(extractLastJson('{ he said "hi {"a":1}')).toEqual({ a: 1 });
+    expect(extractLastJson('a { "b {"a":1} c')).toEqual({ a: 1 });
+  });
+
+  it('returns the top-level object, not a nested one, and still the last of several', () => {
+    expect(extractLastJson('x {"a":{"b":1}} y')).toEqual({ a: { b: 1 } });
+    expect(extractLastJson('{"a":1} {"b":{"c":2}} {oops')).toEqual({ b: { c: 2 } });
+  });
+
+  it('200 KB of stray braces and quotes is handled in well under a second (linear scan)', () => {
+    const cases = ['{'.repeat(200_000) + '{"a":1}', '{ "x '.repeat(40_000) + '{"a":1}', '{"a":'.repeat(40_000) + ' {"a":1}'];
+    for (const t of cases) {
+      const t0 = performance.now();
+      expect(extractLastJson(t)).toEqual({ a: 1 });
+      expect(performance.now() - t0).toBeLessThan(500);
+    }
+  });
+
   it('handles fences with no language and CRLF', () => {
     expect(extractLastJson('```\r\n{"a":true}\r\n```')).toEqual({ a: true });
   });
