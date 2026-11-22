@@ -60,6 +60,7 @@ export const COPY = {
   'error.not_installed': 'Claude Code was not found on this PC.',
   'error.not_signed_in': 'Claude Code is not signed in. Run `claude` once and sign in.',
   'error.rate_limited': 'Claude usage limit reached. Try again after {time}.',
+  'error.rate_limited.noTime': 'Claude usage limit reached. Try again later.',
   'error.timeout': '{role} took longer than {minutes} min and was stopped.',
   'error.bad_output': "{role}'s reply couldn't be read.",
   'error.crashed': '{role} stopped unexpectedly.',
