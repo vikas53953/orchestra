@@ -25,7 +25,7 @@ describe('classifyRun', () => {
   it('B4 usage limit -> rate_limited with the reset time', () => {
     expect(classifyRun({ final: fin({ isError: true, result: "5-hour limit reached ∙ resets 3pm (Europe/London)" }), exitCode: 1 }))
       .toEqual({ error: 'rate_limited', errorDetail: 'resets 3pm (Europe/London)' });
-    expect(classifyRun({ final: fin({ isError: false, result: "You've hit your limit · resets 11:30pm" }), exitCode: 1 }))
+    expect(classifyRun({ final: fin({ isError: false, result: "You've hit your limit · resets 11:30pm" }), exitCode: 0 }))
       .toEqual({ error: 'rate_limited', errorDetail: 'resets 11:30pm' });
     const epoch = classifyRun({ final: fin({ isError: true, result: 'Claude AI usage limit reached|1767225600' }), exitCode: 1 });
     expect(epoch).toEqual({ error: 'rate_limited', errorDetail: 'resets 2026-01-01T00:00:00.000Z' });
@@ -34,6 +34,18 @@ describe('classifyRun', () => {
   it('does not mistake an answer that talks about rate limits for a limit', () => {
     const r = classifyRun({ final: fin({ result: 'This repo implements a rate limit middleware that returns 429 when the usage limit is hit.' }), exitCode: 0 });
     expect(r).toEqual({});
+  });
+
+  it('B4 a limit notice reported as a normal result (is_error false, exit 0) -> rate_limited', () => {
+    expect(classifyRun({ final: fin({ isError: false, result: 'Claude AI usage limit reached|1732291200' }), exitCode: 0 }))
+      .toEqual({ error: 'rate_limited', errorDetail: 'resets 2024-11-22T16:00:00.000Z' });
+    expect(classifyRun({ final: fin({ isError: false, result: '5-hour limit reached ∙ resets 3pm (Europe/London)\n' }), exitCode: 0 }))
+      .toEqual({ error: 'rate_limited', errorDetail: 'resets 3pm (Europe/London)' });
+  });
+
+  it('a successful answer that only looks like a limit notice stays an answer', () => {
+    expect(classifyRun({ final: fin({ result: 'Claude AI usage limit reached|1732291200\nThat string is what the CLI prints.' }), exitCode: 0 })).toEqual({});
+    expect(classifyRun({ final: fin({ result: '5-hour limit reached ∙ resets 3pm\nis the banner this repo parses.' }), exitCode: 0 })).toEqual({});
   });
 
   it('a successful short answer that starts like a limit notice is not rate_limited', () => {

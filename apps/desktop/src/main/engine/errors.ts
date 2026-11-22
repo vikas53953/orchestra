@@ -37,7 +37,25 @@ const LIMIT = [
   /\b429\b/,
 ];
 
-/** A short result of a FAILED run (is_error or nonzero exit) that IS a usage-limit notice. */
+/**
+ * B4: Claude Code can report a usage limit as a normal-looking result (is_error false, exit 0). On a run
+ * that did not fail, only a WHOLE single-line result matching a known CLI limit format counts.
+ */
+const SEP = '\\s*[∙·•|]\\s*';
+const RESETS = 'resets?\\s+[^\\n]{1,60}';
+const EXACT_LIMIT_NOTICES = [
+  /^Claude AI usage limit reached\|\d{9,13}$/i,
+  new RegExp(`^(?:\\d+-hour |weekly |opus |sonnet )?(?:usage )?limit reached${SEP}${RESETS}$`, 'i'),
+  new RegExp(`^(?:Claude (?:AI )?)?usage limit reached[.!]?(?:${SEP}|\\s+)(?:your limit will )?${RESETS}$`, 'i'),
+  new RegExp(`^you'?ve hit your (?:usage )?limit${SEP}${RESETS}$`, 'i'),
+];
+
+function isExactLimitNotice(text: string): boolean {
+  const t = text.trim();
+  return !/[\r\n]/.test(t) && EXACT_LIMIT_NOTICES.some((r) => r.test(t));
+}
+
+/** A short result of a FAILED run (is_error or nonzero exit) that starts like a usage-limit notice. */
 const LIMIT_NOTICE = /^\s*(claude ai usage limit reached|you'?ve hit your (usage )?limit|[\w -]*limit reached\s*[∙·•|:-])/i;
 
 /** The reset time as the CLI wrote it: "resets 3pm (Europe/London)" or the epoch after "usage limit reached|". */
@@ -71,7 +89,7 @@ export function classifyRun(o: RunOutcome): Classified {
   const stderr = o.stderr ?? '';
   const failed = !o.final || o.final.isError || (o.exitCode != null && o.exitCode !== 0);
 
-  if (failed && resultText.length < 400 && LIMIT_NOTICE.test(resultText)) {
+  if ((failed && resultText.length < 400 && LIMIT_NOTICE.test(resultText)) || (!failed && isExactLimitNotice(resultText))) {
     return { error: 'rate_limited', errorDetail: resetDetail(resultText) ?? resultText.trim() };
   }
 
