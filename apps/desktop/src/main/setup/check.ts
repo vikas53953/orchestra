@@ -25,6 +25,7 @@ const SAFE_ARG = /^[A-Za-z0-9._=:\/-]+$/;
 export function resolveCommand(
   name: string, args: string[], env: NodeJS.ProcessEnv = process.env,
   platform: NodeJS.Platform = process.platform, exists: (f: string) => boolean = existsSync,
+  baseEnv: NodeJS.ProcessEnv = process.env,
 ): ResolvedCommand {
   if (platform !== 'win32') return { file: name, args, verbatim: false };
   const pathVar = env.PATH ?? env.Path ?? '';
@@ -35,12 +36,30 @@ export function resolveCommand(
       if (!exists(f)) continue;
       if (/\.(cmd|bat)$/i.test(f)) {
         if (!args.every((a) => SAFE_ARG.test(a))) throw new Error(`unsafe argument for ${name}`);
-        return { file: env.ComSpec ?? 'cmd.exe', args: ['/d', '/s', '/c', `""${f}" ${args.join(' ')}"`], verbatim: true };
+        return { file: comSpec(env, baseEnv), args: ['/d', '/s', '/c', `""${f}" ${args.join(' ')}"`], verbatim: true };
       }
       return { file: f, args, verbatim: false };
     }
   }
   return { file: name, args, verbatim: false };
+}
+
+/** cmd.exe by full path: caller ComSpec, else the app's ComSpec, else <SystemRoot>\\System32\\cmd.exe. */
+function comSpec(env: NodeJS.ProcessEnv, baseEnv: NodeJS.ProcessEnv): string {
+  return env.ComSpec ?? baseEnv.ComSpec
+    ?? win32.join(env.SystemRoot ?? baseEnv.SystemRoot ?? 'C:\\Windows', 'System32', 'cmd.exe');
+}
+
+/** The child env: the caller's env, plus SystemRoot and ComSpec from the app env on Windows when missing. */
+export function spawnEnv(
+  env: NodeJS.ProcessEnv, platform: NodeJS.Platform = process.platform, baseEnv: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  if (platform !== 'win32') return env;
+  const out: NodeJS.ProcessEnv = { ...env };
+  for (const k of ['SystemRoot', 'ComSpec'] as const) {
+    if (out[k] === undefined && baseEnv[k] !== undefined) out[k] = baseEnv[k];
+  }
+  return out;
 }
 
 /** Runs a binary with an argument array (never a shell string with user text), hidden window, with a timeout. */
@@ -52,7 +71,7 @@ export function makeRunCmd(env: NodeJS.ProcessEnv = process.env): RunCmd {
       return;
     }
     execFile(cmd.file, cmd.args, {
-      env, timeout: timeoutMs, windowsHide: true, windowsVerbatimArguments: cmd.verbatim,
+      env: spawnEnv(env), timeout: timeoutMs, windowsHide: true, windowsVerbatimArguments: cmd.verbatim,
       encoding: 'utf8', maxBuffer: 1024 * 1024,
     }, (err, stdout, stderr) => resolve({ ok: !err, stdout: String(stdout ?? ''), stderr: String(stderr ?? '') }));
   });

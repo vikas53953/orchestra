@@ -3,7 +3,7 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  createSetupChecker, driveOf, makeRunCmd, parseGitVersion, gitVersionOk, resolveCommand,
+  createSetupChecker, driveOf, makeRunCmd, parseGitVersion, gitVersionOk, resolveCommand, spawnEnv,
 } from '../../../apps/desktop/src/main/setup/check';
 import type { ProbeResult } from '../../../apps/desktop/src/shared/engine';
 import { COPY } from '../../../apps/desktop/src/shared/copy';
@@ -152,7 +152,7 @@ describe('setup check', () => {
     const exe = resolveCommand('git', ['--version'], env, 'win32', (f) => f === 'C:\\b\\git.EXE');
     expect(exe).toEqual({ file: 'C:\\b\\git.EXE', args: ['--version'], verbatim: false });
     const cmd = resolveCommand('gh', ['auth', 'status'], env, 'win32', (f) => f === 'C:\\a\\gh.CMD');
-    expect(cmd.file.toLowerCase()).toBe('cmd.exe');
+    expect(cmd.file.toLowerCase()).toMatch(/^[a-z]:\\.*\\cmd\.exe$/); // a full path, never a PATH lookup
     expect(cmd.args).toEqual(['/d', '/s', '/c', '""C:\\a\\gh.CMD" auth status"']);
     expect(cmd.verbatim).toBe(true);
     expect(resolveCommand('git', ['--version'], env, 'win32', () => false).file).toBe('git');
@@ -162,5 +162,24 @@ describe('setup check', () => {
   it('posix: commands run by name through PATH', () => {
     expect(resolveCommand('git', ['--version'], { PATH: '/x' }, 'linux', () => true))
       .toEqual({ file: 'git', args: ['--version'], verbatim: false });
+  });
+
+  it('win32: a .cmd shim finds cmd.exe via ComSpec/SystemRoot even when the caller env has neither', () => {
+    const env = { PATH: 'C:\\fake', PATHEXT: '.EXE;.CMD' };
+    const isGh = (f: string) => f === 'C:\\fake\\gh.CMD';
+    const viaComSpec = resolveCommand('gh', ['auth', 'status'], env, 'win32', isGh, { ComSpec: 'C:\\Win\\System32\\cmd.exe' });
+    expect(viaComSpec.file).toBe('C:\\Win\\System32\\cmd.exe');
+    const viaRoot = resolveCommand('gh', ['auth', 'status'], env, 'win32', isGh, { SystemRoot: 'D:\\Windows' });
+    expect(viaRoot.file).toBe('D:\\Windows\\System32\\cmd.exe');
+    expect(resolveCommand('gh', ['auth', 'status'], env, 'win32', isGh, {}).file).toBe('C:\\Windows\\System32\\cmd.exe');
+    expect(resolveCommand('gh', ['x'], { ...env, ComSpec: 'E:\\cmd.exe' }, 'win32', isGh, {}).file).toBe('E:\\cmd.exe');
+  });
+
+  it('win32: the spawn env keeps SystemRoot and ComSpec from the app env when the caller env lacks them', () => {
+    const base = { SystemRoot: 'C:\\Windows', ComSpec: 'C:\\Windows\\System32\\cmd.exe', SECRET: 'x' };
+    expect(spawnEnv({ PATH: 'C:\\fake' }, 'win32', base))
+      .toEqual({ PATH: 'C:\\fake', SystemRoot: 'C:\\Windows', ComSpec: 'C:\\Windows\\System32\\cmd.exe' });
+    expect(spawnEnv({ PATH: 'C:\\fake', SystemRoot: 'Z:\\W' }, 'win32', base).SystemRoot).toBe('Z:\\W');
+    expect(spawnEnv({ PATH: '/x' }, 'linux', base)).toEqual({ PATH: '/x' });
   });
 });
