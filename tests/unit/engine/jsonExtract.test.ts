@@ -61,3 +61,96 @@ describe('extractLastJson', () => {
     expect(extractLastJson('[1,2]')).toBeUndefined();
   });
 });
+
+// B1: what the model may wrap its reply JSON in. "deep" JSON (arrays nested 2000 levels) is only readable
+// through a fence (JSON.parse); the bare scan is depth-capped so it never overflows the stack.
+const DEEP = '{"deep":' + '['.repeat(2000) + ']'.repeat(2000) + '}';
+const isDeep = (v: unknown): boolean => typeof v === 'object' && v !== null && 'deep' in v;
+
+describe('extractLastJson: fences (B1)', () => {
+  it.each([
+    ['```json\n', 'json, no spaces'],
+    ['```JSON\n', 'upper-case JSON'],
+    ['``` json\n', 'space before the language'],
+    ['```\t\tjson  \n', 'tabs and spaces around the language'],
+    ['```\n', 'no language'],
+    ['```json\r\n', 'CRLF'],
+  ])('%j (%s)', (open) => {
+    expect(isDeep(extractLastJson(`Plan:\n${open}${DEEP}\n\`\`\`\nDone.`))).toBe(true);
+  });
+
+  it('a fenced object later than a bare one wins; a bare object later than a fence wins', () => {
+    expect(isDeep(extractLastJson('{"a":1}\n```json\n' + DEEP + '\n```'))).toBe(true);
+    expect(extractLastJson('```json\n' + DEEP + '\n```\nthen {"a":1}')).toEqual({ a: 1 });
+  });
+
+  it('a fence that holds an array, a string, a number or null is not an object', () => {
+    for (const inner of ['[1,2]', '"text"', '5', 'null', 'not json']) {
+      expect(extractLastJson('{"a":1}\n```json\n' + inner + '\n```')).toEqual({ a: 1 });
+    }
+  });
+
+  it('unclosed or language-only fences are not read', () => {
+    expect(extractLastJson('```json\n' + DEEP)).toBeUndefined();
+    expect(extractLastJson('```json ' + DEEP + '```')).toBeUndefined();
+  });
+});
+
+describe('extractLastJson: bare objects', () => {
+  it('an object at the very start, alone, or right next to another', () => {
+    expect(extractLastJson('{"a":1}')).toEqual({ a: 1 });
+    expect(extractLastJson('{"a":1} trailing')).toEqual({ a: 1 });
+    expect(extractLastJson('{"a":1}{"b":2}')).toEqual({ b: 2 });
+    expect(extractLastJson('"{"a":1}')).toEqual({ a: 1 });
+  });
+
+  it('empty objects and arrays, all JSON value kinds and whitespace kinds', () => {
+    expect(extractLastJson('x {} y')).toEqual({});
+    expect(extractLastJson('x { } y')).toEqual({});
+    expect(extractLastJson('{"a":{},"b":[],"c":[ ]}')).toEqual({ a: {}, b: [], c: [] });
+    const all = '{"t":true,"f":false,"n":null,"s":"x\\"y\\\\","i":-12,"d":0.25,"e":1e5,"E":2E-3,"p":-1.5e+10,"z":0,"arr":[1,"2",[3],{"k":4}]}';
+    expect(extractLastJson(`see ${all} ok`)).toEqual(JSON.parse(all));
+    for (const ws of [' ', '\t', '\n', '\r\n', ' \t\r\n ']) {
+      const t = `{${ws}"a"${ws}:${ws}[${ws}1${ws},${ws}2${ws}]${ws},${ws}"b"${ws}:${ws}{${ws}}${ws}}`;
+      expect(extractLastJson(`x ${t} y`)).toEqual({ a: [1, 2], b: {} });
+    }
+  });
+
+  // An outer {...} that is not valid JSON is skipped as a whole, so a valid object inside it is the answer.
+  it.each([
+    ['missing key quote', '{ab": 1, "c": {"d": 2}}'],
+    ['missing colon', '{"a" x1, "c": {"d": 2}}'],
+    ['missing comma', '{"a":1 "c": {"d": 2}}'],
+    ['missing array comma', '{"a":[1 2], "c": {"d": 2}}'],
+    ['raw newline in a string', '{"a":"line\nbreak", "c": {"d": 2}}'],
+    ['bare word', '{"a":maybe, "c": {"d": 2}}'],
+    ['bad number', '{"a":.5, "c": {"d": 2}}'],
+  ])('invalid outer object (%s) -> the valid inner one', (_why, t) => {
+    expect(extractLastJson(t)).toEqual({ d: 2 });
+  });
+
+  it.each(['1.', '1e', '1e+', '-', '01'])('number %j is not JSON', (n) => {
+    expect(extractLastJson(`{"ok":1} {"a":${n}}`)).toEqual({ ok: 1 });
+  });
+
+  it('a later object JSON.parse rejects (bad escape) does not hide an earlier good one', () => {
+    expect(extractLastJson('{"ok":1} {"a":"\\x"}')).toEqual({ ok: 1 });
+  });
+
+  it('very deep nesting does not overflow the stack', () => {
+    expect(extractLastJson('{"a":' + '['.repeat(100_000) + ']'.repeat(100_000) + '} {"b":1}')).toEqual({ b: 1 });
+    expect(extractLastJson('{"a":'.repeat(50_000) + '1' + '}'.repeat(50_000))).toBeTypeOf('object');
+  });
+});
+
+describe('extractLastJson: very long text', () => {
+  const pad = (n: number): string => 'x'.repeat(n);
+  it('up to 1 MB the whole text is searched', () => {
+    expect(extractLastJson('{"a":1}' + pad(500_000))).toEqual({ a: 1 });
+  });
+  it('over 1 MB only the last 256 KB is searched (the reply JSON comes last)', () => {
+    expect(extractLastJson(pad(1_000_000) + '{"a":1}' + pad(1_000_000))).toBeUndefined();
+    expect(extractLastJson('{"a":1}' + pad(2_000_000))).toBeUndefined();
+    expect(extractLastJson(pad(2_000_000) + '{"a":1}' + pad(200_000))).toEqual({ a: 1 });
+  });
+});

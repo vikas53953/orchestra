@@ -71,3 +71,183 @@ describe('classifyRun', () => {
     expect(resetDetail('usage limit reached')).toBeUndefined();
   });
 });
+
+// Real-world wording variants the CLI and API use for each cause (architecture.md §9). Each row is a
+// message a failed run can end with; the cause shown to the user must follow from it.
+describe('classifyRun: wording variants of a failed run', () => {
+  const failedWith = (result: string) => classifyRun({ final: fin({ isError: true, subtype: 'error_during_execution', result }), exitCode: 1 });
+
+  it.each([
+    'Please /login to continue',
+    'Please run /login',
+    'Invalid API key',
+    'authentication_error: invalid x-api-key',
+    'Authentication failed for this account',
+    'Authentication is required to use Claude Code',
+    'OAuth token has expired. Please sign in again.',
+    'OAuth token revoked',
+    'API Error: 401 {"type":"error","error":{"message":"Unauthorized"}}',
+    'API Error: 401 unauthorised',
+  ])('not signed in: %s', (msg) => {
+    expect(failedWith(msg)).toEqual({ error: 'not_signed_in', errorDetail: msg });
+  });
+
+  it.each([
+    'API Error: Usage limit exceeded for this organization',
+    'Weekly limit reached for Opus',
+    'You have hit your usage limit for today',
+    'You hit your limit',
+    'API Error: rate_limit_error',
+    'Request failed: rate limit exceeded',
+    'API Error: 429 Too Many Requests',
+  ])('rate limited: %s', (msg) => {
+    expect(failedWith(msg)).toMatchObject({ error: 'rate_limited' });
+  });
+
+  it('auth wins over a limit word in the same failure', () => {
+    expect(failedWith('Not logged in (usage limit unknown)').error).toBe('not_signed_in');
+  });
+
+  it('a long failed result that starts like a notice is a generic limit: detail is its first line, capped', () => {
+    const long = 'Limit reached: ' + 'x'.repeat(500);
+    expect(failedWith(long)).toEqual({ error: 'rate_limited', errorDetail: long.slice(0, 200) });
+  });
+
+  it('an unrelated failure is crashed with its subtype, or with its first line when there is no subtype', () => {
+    expect(failedWith('Something broke')).toEqual({ error: 'crashed', errorDetail: 'error_during_execution' });
+    expect(classifyRun({ final: fin({ isError: true, subtype: '', result: '  Tool failed\nstack...' }), exitCode: 1 }))
+      .toEqual({ error: 'crashed', errorDetail: 'Tool failed' });
+  });
+
+  it('the detail of a sign-in failure is the first line of the result, else of stderr, at most 200 chars', () => {
+    expect(failedWith('Invalid API key\nmore')).toEqual({ error: 'not_signed_in', errorDetail: 'Invalid API key' });
+    expect(classifyRun({ stderr: '\n  Error: Not logged in\r\nRun claude', exitCode: 1 })).toEqual({ error: 'not_signed_in', errorDetail: 'Error: Not logged in' });
+    const long = 'Invalid API key ' + 'k'.repeat(300);
+    expect(failedWith(long).errorDetail).toBe(long.slice(0, 200));
+  });
+
+  it('a limit in stderr with no reset time uses the first stderr line as detail', () => {
+    expect(classifyRun({ stderr: 'API Error: 429\nretry later', exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'API Error: 429' });
+    expect(classifyRun({ final: fin({ isError: true, result: 'Server said 429' }), stderr: 'x', exitCode: 1 }))
+      .toEqual({ error: 'rate_limited', errorDetail: 'Server said 429' });
+  });
+
+  it('a limit with "try again after" gives that as detail', () => {
+    expect(failedWith('API Error: 429 rate limited. Try again after 4:05pm.')).toEqual({ error: 'rate_limited', errorDetail: 'try again after 4:05pm' });
+  });
+});
+
+describe('classifyRun: limit notice on a failed run (B4)', () => {
+  it.each([
+    ['  Claude AI usage limit reached|1767225600', 'resets 2026-01-01T00:00:00.000Z'],
+    ["You've hit your usage limit · resets 9am", 'resets 9am'],
+    ['Youve hit your limit · resets 9am', 'resets 9am'],
+    ['Opus weekly limit reached • resets Mon 9am', 'resets Mon 9am'],
+    ['5-hour limit reached | resets 3pm', 'resets 3pm'],
+    ['5-hour limit reached - resets 3pm', 'resets 3pm'],
+    ['5-hour limit reached: resets at 3pm', 'resets 3pm'],
+  ])('%s -> %s', (result, detail) => {
+    expect(classifyRun({ final: fin({ isError: false, result }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: detail });
+  });
+
+  it('a short notice with no time keeps the whole notice text as detail', () => {
+    expect(classifyRun({ final: fin({ isError: true, result: ' 5-hour limit reached ∙ \nUpgrade for more ' }), exitCode: 1 }))
+      .toEqual({ error: 'rate_limited', errorDetail: '5-hour limit reached ∙ \nUpgrade for more' });
+    expect(classifyRun({ final: fin({ isError: true, result: 'Claude AI usage limit reached\nUpgrade' }), exitCode: 1 }))
+      .toEqual({ error: 'rate_limited', errorDetail: 'Claude AI usage limit reached\nUpgrade' });
+    expect(classifyRun({ final: fin({ isError: true, result: "You've hit your limit\nUpgrade" }), exitCode: 1 }))
+      .toEqual({ error: 'rate_limited', errorDetail: "You've hit your limit\nUpgrade" });
+    expect(classifyRun({ final: fin({ isError: true, result: 'Session limit reached:\nUpgrade' }), exitCode: 1 }))
+      .toEqual({ error: 'rate_limited', errorDetail: 'Session limit reached:\nUpgrade' });
+  });
+
+  it('a phrase that only resembles a notice gets the generic first-line detail', () => {
+    // "!" before "limit reached" is not part of a notice's prefix; no separator after it either
+    expect(classifyRun({ final: fin({ isError: true, result: 'Oops! limit reached\nUpgrade' }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'Oops! limit reached' });
+    expect(classifyRun({ final: fin({ isError: true, result: 'limit reached ok\nUpgrade' }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'limit reached ok' });
+    expect(classifyRun({ final: fin({ isError: true, result: 'xx you hit your limit\nUpgrade' }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'xx you hit your limit' });
+  });
+
+  it('a "limit reached" phrase that is not a notice is not treated as one', () => {
+    // no separator after "limit reached": falls through to the generic limit words, detail from the text
+    expect(classifyRun({ final: fin({ isError: true, result: 'limit reached because of X' }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'limit reached because of X' });
+    // prose before the phrase that is not a word/space/dash run
+    expect(classifyRun({ final: fin({ isError: true, subtype: 'error', result: 'Note: limit reached · resets 3pm' }), exitCode: 1 }))
+      .toEqual({ error: 'rate_limited', errorDetail: 'resets 3pm' });
+  });
+});
+
+describe('classifyRun: limit notice on a run that did not fail (B4, exact formats only)', () => {
+  const ok = (result: string) => classifyRun({ final: fin({ isError: false, result }), exitCode: 0 });
+  it.each([
+    ['Claude AI usage limit reached|1767225600', 'resets 2026-01-01T00:00:00.000Z'],
+    ['claude ai usage limit reached|1767225600000', 'resets 2026-01-01T00:00:00.000Z'],
+    ['5-hour limit reached ∙ resets 3pm (Europe/London)', 'resets 3pm (Europe/London)'],
+    ['Weekly limit reached · resets Mon 9am', 'resets Mon 9am'],
+    ['Opus limit reached · resets Mon 9am', 'resets Mon 9am'],
+    ['Sonnet usage limit reached · resets Mon 9am', 'resets Mon 9am'],
+    ['Claude usage limit reached. Your limit will reset at 5pm', 'resets 5pm'],
+    ['Claude AI usage limit reached · resets 5pm', 'resets 5pm'],
+    ['Usage limit reached resets 5pm', 'resets 5pm'],
+    ["You've hit your usage limit · resets 11:30pm", 'resets 11:30pm'],
+  ])('%s -> %s', (result, detail) => {
+    expect(ok(result)).toEqual({ error: 'rate_limited', errorDetail: detail });
+  });
+
+  it.each([
+    'Answer: Claude AI usage limit reached|1767225600',
+    'Claude AI usage limit reached|1767225600 is the format',
+    'Claude AI usage limit reached|12345',
+    '5-hour limit reached ∙ resets',
+    'Daily limit reached ∙ resets 3pm',
+    'The 5-hour limit reached ∙ resets 3pm',
+    "You've hit your limit ∙ resets 3pm and here is more " + 'x'.repeat(80),
+    'Usage limit reached',
+  ])('stays an answer: %s', (result) => {
+    expect(ok(result)).toEqual({});
+  });
+});
+
+describe('classifyRun: process ended without a result (B3)', () => {
+  it('detail is the first stderr line, else why the process ended', () => {
+    expect(classifyRun({ exitCode: 1, stderr: 'TypeError: x is undefined\n  at y' })).toEqual({ error: 'crashed', errorDetail: 'TypeError: x is undefined' });
+    expect(classifyRun({ exitCode: 3, signal: null })).toEqual({ error: 'crashed', errorDetail: 'process ended without a result (exit code 3)' });
+    expect(classifyRun({ exitCode: 0 })).toEqual({ error: 'crashed', errorDetail: 'process ended without a result (exit code 0)' });
+    expect(classifyRun({ exitCode: null, signal: 'SIGKILL' })).toEqual({ error: 'crashed', errorDetail: 'process ended without a result (signal SIGKILL)' });
+    expect(classifyRun({})).toEqual({ error: 'crashed', errorDetail: 'process ended without a result (exit code unknown)' });
+  });
+
+  it('a spawn error without a code uses its message', () => {
+    expect(classifyRun({ spawnError: new Error('boom') })).toEqual({ error: 'not_installed', errorDetail: 'boom' });
+  });
+
+  it('a successful result with a nonzero exit and no cause words is still the answer', () => {
+    expect(classifyRun({ final: fin({ result: 'All good.' }), exitCode: 2 })).toEqual({});
+  });
+});
+
+describe('resetDetail', () => {
+  it.each([
+    ['resets 3pm', 'resets 3pm'],
+    ['reset at 10:00 UTC', 'resets 10:00 UTC'],
+    ['Resets  at   noon; later', 'resets noon'],
+    ['usage limit reached|1767225600', 'resets 2026-01-01T00:00:00.000Z'],
+    ['usage limit reached|1767225600123', 'resets 2026-01-01T00:00:00.123Z'],
+    ['try again in 5 minutes. thanks', 'try again after 5 minutes'],
+    ['Try again at  4pm', 'try again after 4pm'],
+  ])('%s -> %s', (text, detail) => {
+    expect(resetDetail(text)).toBe(detail);
+  });
+
+  it('caps the time text at 60 chars and stops at a quote or newline', () => {
+    expect(resetDetail('resets ' + 'a'.repeat(100))).toBe('resets ' + 'a'.repeat(60));
+    expect(resetDetail('resets 3pm"}\nmore')).toBe('resets 3pm');
+    expect(resetDetail('try again after ' + 'b'.repeat(100))).toBe('try again after ' + 'b'.repeat(60));
+  });
+
+  it('presetting or "resetting" is not a reset time; an epoch that is not a date is ignored', () => {
+    expect(resetDetail('presets 3pm')).toBeUndefined();
+    expect(resetDetail('try again after')).toBeUndefined();
+    expect(resetDetail('limit reached|9999999999999')).toBe('resets 2286-11-20T17:46:39.999Z');
+  });
+});

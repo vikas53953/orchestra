@@ -92,3 +92,125 @@ describe('relativePath', () => {
     expect(relativePath('src/a.js', '/work/r')).toBe('src/a.js');
   });
 });
+
+// Lane states per PRD §2 / AC-S0.3 and the error copy per architecture.md §9.
+const ended = (p: Partial<Extract<OrchestraEvent, { type: 'run.ended' }>['payload']>, ts = 20, role: 'TeamLead' | 'Builder' | 'Tester' = 'TeamLead'): OrchestraEvent =>
+  ({ ...base(ts), type: 'run.ended', payload: { role, ok: true, finalText: '', durationMs: 1000, ...p } });
+const call = (tool: string, summary: string, path?: string, role: 'TeamLead' | 'Builder' | 'Tester' = 'TeamLead'): OrchestraEvent =>
+  ({ ...base(5), type: 'run.tool_call', payload: { role, tool, summary, ...(path !== undefined ? { path } : {}) } });
+
+describe('lanes reducer: steps per tool', () => {
+  it.each([
+    ['Read', 'src/a.js', undefined, 'Reading src/a.js'],
+    ['NotebookRead', 'nb.ipynb', 'nb.ipynb', 'Reading nb.ipynb'],
+    ['Read', '', undefined, 'Thinking'],
+    ['Glob', '**/*.ts', undefined, 'Searching the repo'],
+    ['LS', '.', undefined, 'Searching the repo'],
+    ['Search', 'x', undefined, 'Searching the repo'],
+    ['WebSearch', 'x', undefined, 'Searching the repo'],
+    ['Edit', 'src/a.js', 'src/a.js', 'Thinking'],
+    ['Bash', 'npm test', undefined, 'Thinking'],
+  ])('%s %j -> %s', (tool, summary, path, want) => {
+    expect(lanes([started(), call(tool, summary, path)])[0]?.latestStep).toBe(want);
+  });
+
+  it('Read prefers the path over the summary, made relative to the repo', () => {
+    expect(lanes([created(), started(), call('Read', 'ignored', '/work/sample-repo/lib/x.js')])[0]?.latestStep).toBe('Reading lib/x.js');
+  });
+});
+
+describe('lanes reducer: run lifecycle', () => {
+  it('lanes come out in crew order whatever order roles first appear in', () => {
+    const tester: OrchestraEvent = { ...base(3), type: 'run.started', payload: { role: 'Tester', model: null } };
+    const builder: OrchestraEvent = { ...base(4), type: 'run.started', payload: { role: 'Builder', model: null } };
+    expect(lanes([tester, builder]).map((l) => l.role)).toEqual(['TeamLead', 'Builder', 'Tester']);
+    expect(lanes([tester]).map((l) => l.role)).toEqual(['TeamLead', 'Tester']);
+    const b = lanes([builder, call('Read', 'a.js', undefined, 'Builder')]);
+    expect(b[1]).toMatchObject({ role: 'Builder', working: true, latestStep: 'Reading a.js' });
+    expect(b[0]).toMatchObject({ role: 'TeamLead', working: false, latestStep: 'Waiting', history: [] });
+  });
+
+  it('a new run clears the previous answer and error and starts working again', () => {
+    const ls = lanes([started(2), ended({ ok: false, error: 'crashed' }, 3), started(4)]);
+    expect(ls[0]).toMatchObject({ working: true, outcome: 'none', answer: null, error: null, latestStep: 'Thinking' });
+    const ok = lanes([started(2), text('old', 3), ended({ finalText: 'first' }, 4), started(5), ended({}, 6)]);
+    expect(ok[0]?.answer).toBeNull(); // the old run's streamed text does not leak into the new one
+  });
+
+  it('answer is the trimmed final text, else the streamed text; nothing when both are blank', () => {
+    expect(lanes([started(), ended({ finalText: '  Hi.\n' })])[0]?.answer).toEqual({ text: 'Hi.', ts: 20 });
+    expect(lanes([started(), text('  '), ended({ finalText: '' })])[0]?.answer).toBeNull();
+    expect(lanes([started(), ended({ finalText: '' })])[0]?.answer).toBeNull();
+    expect(lanes([text('no start '), text('event'), ended({ finalText: '' })])[0]?.answer?.text).toBe('no start event');
+  });
+
+  it('a failed run: Failed step, error with detail and duration, defaults to crashed', () => {
+    const l = lanes([started(), ended({ ok: false, error: 'rate_limited', errorDetail: '3pm', durationMs: 1234 })])[0]!;
+    expect(l).toMatchObject({ working: false, outcome: 'failed', latestStep: 'Failed', answer: null });
+    expect(l.error).toEqual({ error: 'rate_limited', detail: '3pm', durationMs: 1234, ts: 20 });
+    expect(l.history.map((h) => h.text)).toEqual(['Thinking', 'Failed']);
+    expect(lanes([started(), ended({ ok: false })])[0]?.error).toEqual({ error: 'crashed', detail: null, durationMs: 1000, ts: 20 });
+  });
+
+  it('a stopped run reads Stopped and is not an error', () => {
+    const l = lanes([started(), ended({ ok: false, error: 'stopped' })])[0]!;
+    expect(l).toMatchObject({ working: false, outcome: 'stopped', latestStep: 'Stopped', error: null });
+  });
+
+  it('session.stopped leaves finished lanes as they are', () => {
+    const l = lanes([started(), ended({ finalText: 'ok' }), { ...base(30), type: 'session.stopped', payload: {} }])[0]!;
+    expect(l).toMatchObject({ outcome: 'ok', latestStep: 'Done' });
+    expect(l.history.map((h) => h.text)).toEqual(['Thinking', 'Done']);
+  });
+
+  it('events that are not lane events change nothing', () => {
+    const before = lanes([started()]);
+    const after = lanes([started(), { ...base(9), type: 'session.state', payload: { state: 'planning' } }, { ...base(10), type: 'run.tool_result', payload: { role: 'TeamLead', tool: 'Read', ok: true, summary: 'x' } }]);
+    expect(after).toEqual(before);
+  });
+});
+
+describe('status tones (one colour per meaning)', () => {
+  it.each([
+    ['status.planning', 'working'], ['status.building', 'working'], ['status.testing', 'working'], ['status.shipping', 'working'],
+    ['status.plan_ready', 'needs'], ['status.review_ready', 'needs'],
+    ['status.answered', 'done'], ['status.pr_opened', 'done'],
+    ['status.failed', 'fail'],
+    ['status.draft', 'quiet'], ['status.declined', 'quiet'], ['status.stopped', 'quiet'],
+  ] as const)('%s -> %s', (key, tone) => {
+    expect(statusTone(key)).toBe(tone);
+  });
+  it('other states keep their own key', () => {
+    expect(statusKey('review_ready', [])).toBe('status.review_ready');
+    expect(statusKey('failed', [{ ...base(1), type: 'plan.proposed', payload: { plan: {} } }])).toBe('status.failed');
+  });
+});
+
+describe('errorText (architecture.md §9 copy)', () => {
+  const err = (error: Parameters<typeof errorText>[1]['error'], detail: string | null = null, durationMs = 1000) => ({ error, detail, durationMs, ts: 1 });
+  it.each([
+    ['not_installed', null, 'Claude Code was not found on this PC.'],
+    ['not_signed_in', null, 'Claude Code is not signed in. Run `claude` once and sign in.'],
+    ['rate_limited', '3pm', 'Claude usage limit reached. Try again after 3pm.'],
+    ['bad_output', null, "Builder's reply couldn't be read."],
+    ['stopped', null, 'Stopped.'],
+    ['crashed', null, 'Builder stopped unexpectedly.'],
+  ] as const)('%s', (e, detail, want) => {
+    expect(errorText('Builder', err(e, detail))).toBe(want);
+  });
+  it('timeout minutes are rounded, at least 1', () => {
+    expect(errorText('Tester', err('timeout', null, 10_000))).toBe('Tester took longer than 1 min and was stopped.');
+    expect(errorText('Tester', err('timeout', null, 150_000))).toBe('Tester took longer than 3 min and was stopped.');
+  });
+});
+
+describe('relativePath edge cases', () => {
+  it('no repo, trailing slashes, siblings and case', () => {
+    expect(relativePath('/work/r/a.js', null)).toBe('/work/r/a.js');
+    expect(relativePath('/work/r/a.js', '/work/r//')).toBe('a.js');
+    expect(relativePath('/work/r2/a.js', '/work/r')).toBe('/work/r2/a.js');
+    expect(relativePath('/Work/r/a.js', '/work/r')).toBe('/Work/r/a.js');
+    expect(relativePath('D:\\other\\a.js', 'C:\\r')).toBe('D:\\other\\a.js');
+    expect(relativePath('C:/R/sub/a.js', 'c:/r/')).toBe('sub/a.js');
+  });
+});
