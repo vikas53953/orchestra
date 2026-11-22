@@ -1,0 +1,90 @@
+{
+  "pr": 3,
+  "headSha": "4946d0aa2b8bf8f3d3e4d11db250f38d242f7628",
+  "baseSha": "c166c994f074ae8090479172f7d8b6513102956a",
+  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45035808224",
+  "outcomes": {
+    "mutation": "success",
+    "build": "success",
+    "e2e": "success",
+    "installer": "success",
+    "typecheck": "success",
+    "tokens": "success",
+    "unit": "success",
+    "red-proof": "not-run",
+    "evidence": "success"
+  },
+  "rows": [
+    {
+      "name": "typecheck",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "tokens",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "unit",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "red-proof",
+      "outcome": "not-run",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "not applicable: this PR does not change both unit tests and app source"
+    },
+    {
+      "name": "mutation",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "build",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "e2e",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": "recorded replies only (pre-check)"
+    },
+    {
+      "name": "installer",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "evidence",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "real-ai",
+      "outcome": "",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "UNVERIFIED until run on owner's PC (D9)"
+    }
+  ],
+  "digests": {}
+}
