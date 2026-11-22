@@ -46,7 +46,7 @@ describe('CassetteEngine (pre-check only)', () => {
   it('B4 bad-usage-limit cassette -> rate_limited with the time', async () => {
     const eng = new CassetteEngine(LIMIT, { env: { ORCHESTRA_CASSETTE_DELAY_MS: '200' }, log: () => {} });
     const r = await eng.run(req, () => {}, new AbortController().signal);
-    expect(r).toMatchObject({ ok: false, error: 'rate_limited', errorDetail: 'resets 3pm' });
+    expect(r).toMatchObject({ ok: false, error: 'rate_limited', errorDetail: '3pm' });
   });
 
   it('honours abort mid-replay -> stopped', async () => {

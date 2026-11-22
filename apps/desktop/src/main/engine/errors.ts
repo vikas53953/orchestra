@@ -58,18 +58,23 @@ function isExactLimitNotice(text: string): boolean {
 /** A short result of a FAILED run (is_error or nonzero exit) that starts like a usage-limit notice. */
 const LIMIT_NOTICE = /^\s*(claude ai usage limit reached|you'?ve hit your (usage )?limit|[\w -]*limit reached\s*[∙·•|:-])/i;
 
-/** The reset time as the CLI wrote it: "resets 3pm (Europe/London)" or the epoch after "usage limit reached|". */
+/**
+ * Only the reset time, as the CLI wrote it, for the copy "Claude usage limit reached. Try again after {time}."
+ * (architecture.md §9): "resets 3pm (Europe/London)" -> "3pm (Europe/London)", "try again in 5 minutes" ->
+ * "5 minutes". The "usage limit reached|<epoch>" form becomes an ISO-8601 UTC string; the screen should
+ * format that in the user's local time.
+ */
 export function resetDetail(text: string): string | undefined {
   const resets = text.match(/\bresets?\s+(?:at\s+)?([^\n.;"]{1,60})/i);
-  if (resets?.[1]) return `resets ${resets[1].trim()}`;
+  if (resets?.[1]) return resets[1].trim();
   const epoch = text.match(/limit reached\|(\d{9,13})/i);
   if (epoch?.[1]) {
     const n = Number(epoch[1]);
     const d = new Date(epoch[1].length > 10 ? n : n * 1000);
-    if (!Number.isNaN(d.getTime())) return `resets ${d.toISOString()}`;
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
   }
   const tryAfter = text.match(/try again (?:after|at|in)\s+([^\n.;"]{1,60})/i);
-  if (tryAfter?.[1]) return `try again after ${tryAfter[1].trim()}`;
+  if (tryAfter?.[1]) return tryAfter[1].trim();
   return undefined;
 }
 

@@ -152,7 +152,7 @@ describe('ClaudeCodeEngine run (fake CLI, real delays, pre-check only)', () => {
   it('B4 usage limit message -> rate_limited with the reset time', async () => {
     const { eng } = engine('usage_limit');
     const r = await eng.run(teamLead(), () => {}, new AbortController().signal);
-    expect(r).toMatchObject({ ok: false, error: 'rate_limited', errorDetail: 'resets 3pm (Europe/London)' });
+    expect(r).toMatchObject({ ok: false, error: 'rate_limited', errorDetail: '3pm (Europe/London)' });
   });
 
   it('B5 scaled: slow first line (3 s) -> no timeout, run completes', async () => {

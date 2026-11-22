@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { classifyRun, resetDetail } from '../../../apps/desktop/src/main/engine/errors';
+import { t } from '../../../apps/desktop/src/shared/copy';
 import type { FinalLine } from '../../../apps/desktop/src/main/engine/streamParser';
 
 function fin(p: Partial<FinalLine>): FinalLine {
@@ -24,11 +25,11 @@ describe('classifyRun', () => {
 
   it('B4 usage limit -> rate_limited with the reset time', () => {
     expect(classifyRun({ final: fin({ isError: true, result: "5-hour limit reached ∙ resets 3pm (Europe/London)" }), exitCode: 1 }))
-      .toEqual({ error: 'rate_limited', errorDetail: 'resets 3pm (Europe/London)' });
+      .toEqual({ error: 'rate_limited', errorDetail: '3pm (Europe/London)' });
     expect(classifyRun({ final: fin({ isError: false, result: "You've hit your limit · resets 11:30pm" }), exitCode: 0 }))
-      .toEqual({ error: 'rate_limited', errorDetail: 'resets 11:30pm' });
+      .toEqual({ error: 'rate_limited', errorDetail: '11:30pm' });
     const epoch = classifyRun({ final: fin({ isError: true, result: 'Claude AI usage limit reached|1767225600' }), exitCode: 1 });
-    expect(epoch).toEqual({ error: 'rate_limited', errorDetail: 'resets 2026-01-01T00:00:00.000Z' });
+    expect(epoch).toEqual({ error: 'rate_limited', errorDetail: '2026-01-01T00:00:00.000Z' });
   });
 
   it('does not mistake an answer that talks about rate limits for a limit', () => {
@@ -38,9 +39,9 @@ describe('classifyRun', () => {
 
   it('B4 a limit notice reported as a normal result (is_error false, exit 0) -> rate_limited', () => {
     expect(classifyRun({ final: fin({ isError: false, result: 'Claude AI usage limit reached|1732291200' }), exitCode: 0 }))
-      .toEqual({ error: 'rate_limited', errorDetail: 'resets 2024-11-22T16:00:00.000Z' });
+      .toEqual({ error: 'rate_limited', errorDetail: '2024-11-22T16:00:00.000Z' });
     expect(classifyRun({ final: fin({ isError: false, result: '5-hour limit reached ∙ resets 3pm (Europe/London)\n' }), exitCode: 0 }))
-      .toEqual({ error: 'rate_limited', errorDetail: 'resets 3pm (Europe/London)' });
+      .toEqual({ error: 'rate_limited', errorDetail: '3pm (Europe/London)' });
   });
 
   it('a successful answer that only looks like a limit notice stays an answer', () => {
@@ -133,19 +134,19 @@ describe('classifyRun: wording variants of a failed run', () => {
   });
 
   it('a limit with "try again after" gives that as detail', () => {
-    expect(failedWith('API Error: 429 rate limited. Try again after 4:05pm.')).toEqual({ error: 'rate_limited', errorDetail: 'try again after 4:05pm' });
+    expect(failedWith('API Error: 429 rate limited. Try again after 4:05pm.')).toEqual({ error: 'rate_limited', errorDetail: '4:05pm' });
   });
 });
 
 describe('classifyRun: limit notice on a failed run (B4)', () => {
   it.each([
-    ['  Claude AI usage limit reached|1767225600', 'resets 2026-01-01T00:00:00.000Z'],
-    ["You've hit your usage limit · resets 9am", 'resets 9am'],
-    ['Youve hit your limit · resets 9am', 'resets 9am'],
-    ['Opus weekly limit reached • resets Mon 9am', 'resets Mon 9am'],
-    ['5-hour limit reached | resets 3pm', 'resets 3pm'],
-    ['5-hour limit reached - resets 3pm', 'resets 3pm'],
-    ['5-hour limit reached: resets at 3pm', 'resets 3pm'],
+    ['  Claude AI usage limit reached|1767225600', '2026-01-01T00:00:00.000Z'],
+    ["You've hit your usage limit · resets 9am", '9am'],
+    ['Youve hit your limit · resets 9am', '9am'],
+    ['Opus weekly limit reached • resets Mon 9am', 'Mon 9am'],
+    ['5-hour limit reached | resets 3pm', '3pm'],
+    ['5-hour limit reached - resets 3pm', '3pm'],
+    ['5-hour limit reached: resets at 3pm', '3pm'],
   ])('%s -> %s', (result, detail) => {
     expect(classifyRun({ final: fin({ isError: false, result }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: detail });
   });
@@ -173,23 +174,23 @@ describe('classifyRun: limit notice on a failed run (B4)', () => {
     expect(classifyRun({ final: fin({ isError: true, result: 'limit reached because of X' }), exitCode: 1 })).toEqual({ error: 'rate_limited', errorDetail: 'limit reached because of X' });
     // prose before the phrase that is not a word/space/dash run
     expect(classifyRun({ final: fin({ isError: true, subtype: 'error', result: 'Note: limit reached · resets 3pm' }), exitCode: 1 }))
-      .toEqual({ error: 'rate_limited', errorDetail: 'resets 3pm' });
+      .toEqual({ error: 'rate_limited', errorDetail: '3pm' });
   });
 });
 
 describe('classifyRun: limit notice on a run that did not fail (B4, exact formats only)', () => {
   const ok = (result: string) => classifyRun({ final: fin({ isError: false, result }), exitCode: 0 });
   it.each([
-    ['Claude AI usage limit reached|1767225600', 'resets 2026-01-01T00:00:00.000Z'],
-    ['claude ai usage limit reached|1767225600000', 'resets 2026-01-01T00:00:00.000Z'],
-    ['5-hour limit reached ∙ resets 3pm (Europe/London)', 'resets 3pm (Europe/London)'],
-    ['Weekly limit reached · resets Mon 9am', 'resets Mon 9am'],
-    ['Opus limit reached · resets Mon 9am', 'resets Mon 9am'],
-    ['Sonnet usage limit reached · resets Mon 9am', 'resets Mon 9am'],
-    ['Claude usage limit reached. Your limit will reset at 5pm', 'resets 5pm'],
-    ['Claude AI usage limit reached · resets 5pm', 'resets 5pm'],
-    ['Usage limit reached resets 5pm', 'resets 5pm'],
-    ["You've hit your usage limit · resets 11:30pm", 'resets 11:30pm'],
+    ['Claude AI usage limit reached|1767225600', '2026-01-01T00:00:00.000Z'],
+    ['claude ai usage limit reached|1767225600000', '2026-01-01T00:00:00.000Z'],
+    ['5-hour limit reached ∙ resets 3pm (Europe/London)', '3pm (Europe/London)'],
+    ['Weekly limit reached · resets Mon 9am', 'Mon 9am'],
+    ['Opus limit reached · resets Mon 9am', 'Mon 9am'],
+    ['Sonnet usage limit reached · resets Mon 9am', 'Mon 9am'],
+    ['Claude usage limit reached. Your limit will reset at 5pm', '5pm'],
+    ['Claude AI usage limit reached · resets 5pm', '5pm'],
+    ['Usage limit reached resets 5pm', '5pm'],
+    ["You've hit your usage limit · resets 11:30pm", '11:30pm'],
   ])('%s -> %s', (result, detail) => {
     expect(ok(result)).toEqual({ error: 'rate_limited', errorDetail: detail });
   });
@@ -228,26 +229,48 @@ describe('classifyRun: process ended without a result (B3)', () => {
 
 describe('resetDetail', () => {
   it.each([
-    ['resets 3pm', 'resets 3pm'],
-    ['reset at 10:00 UTC', 'resets 10:00 UTC'],
-    ['Resets  at   noon; later', 'resets noon'],
-    ['usage limit reached|1767225600', 'resets 2026-01-01T00:00:00.000Z'],
-    ['usage limit reached|1767225600123', 'resets 2026-01-01T00:00:00.123Z'],
-    ['try again in 5 minutes. thanks', 'try again after 5 minutes'],
-    ['Try again at  4pm', 'try again after 4pm'],
+    ['resets 3pm', '3pm'],
+    ['reset at 10:00 UTC', '10:00 UTC'],
+    ['Resets  at   noon; later', 'noon'],
+    ['usage limit reached|1767225600', '2026-01-01T00:00:00.000Z'],
+    ['usage limit reached|1767225600123', '2026-01-01T00:00:00.123Z'],
+    ['try again in 5 minutes. thanks', '5 minutes'],
+    ['Try again at  4pm', '4pm'],
   ])('%s -> %s', (text, detail) => {
     expect(resetDetail(text)).toBe(detail);
   });
 
   it('caps the time text at 60 chars and stops at a quote or newline', () => {
-    expect(resetDetail('resets ' + 'a'.repeat(100))).toBe('resets ' + 'a'.repeat(60));
-    expect(resetDetail('resets 3pm"}\nmore')).toBe('resets 3pm');
-    expect(resetDetail('try again after ' + 'b'.repeat(100))).toBe('try again after ' + 'b'.repeat(60));
+    expect(resetDetail('resets ' + 'a'.repeat(100))).toBe('a'.repeat(60));
+    expect(resetDetail('resets 3pm"}\nmore')).toBe('3pm');
+    expect(resetDetail('try again after ' + 'b'.repeat(100))).toBe('b'.repeat(60));
   });
 
   it('presetting or "resetting" is not a reset time; an epoch that is not a date is ignored', () => {
     expect(resetDetail('presets 3pm')).toBeUndefined();
     expect(resetDetail('try again after')).toBeUndefined();
-    expect(resetDetail('limit reached|9999999999999')).toBe('resets 2286-11-20T17:46:39.999Z');
+    expect(resetDetail('limit reached|9999999999999')).toBe('2286-11-20T17:46:39.999Z');
+  });
+});
+
+describe('B4 rate_limited detail is only the time, so the copy reads right (architecture.md §9)', () => {
+  const sentence = (result: string, isError = true): string => {
+    const c = classifyRun({ final: fin({ isError, result }), exitCode: isError ? 1 : 0 });
+    expect(c.error).toBe('rate_limited');
+    return t('error.rate_limited', { time: c.errorDetail ?? '' });
+  };
+  it.each([
+    ['5-hour limit reached ∙ resets 3pm', 'Claude usage limit reached. Try again after 3pm.'],
+    ['5-hour limit reached ∙ resets 3pm (Asia/Calcutta)', 'Claude usage limit reached. Try again after 3pm (Asia/Calcutta).'],
+    ['Claude usage limit reached. Your limit will reset at 5pm', 'Claude usage limit reached. Try again after 5pm.'],
+    ['Claude AI usage limit reached|1732291200', 'Claude usage limit reached. Try again after 2024-11-22T16:00:00.000Z.'],
+    ['API Error: 429. Try again in 5 minutes', 'Claude usage limit reached. Try again after 5 minutes.'],
+  ])('%s', (result, want) => {
+    for (const isError of [true, false]) {
+      if (!isError && result.startsWith('API Error')) continue;
+      const s = sentence(result, isError);
+      expect(s).toBe(want);
+      expect(s).not.toMatch(/after (resets?|try again)/i);
+    }
   });
 });
