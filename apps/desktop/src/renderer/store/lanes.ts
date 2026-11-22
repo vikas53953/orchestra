@@ -146,7 +146,7 @@ export function errorText(role: Role, err: LaneError): string {
   switch (err.error) {
     case 'not_installed': return t('error.not_installed');
     case 'not_signed_in': return t('error.not_signed_in');
-    case 'rate_limited': return t('error.rate_limited', { time: err.detail ?? '' });
+    case 'rate_limited': return err.detail ? t('error.rate_limited', { time: err.detail }) : t('error.rate_limited.noTime');
     case 'timeout': return t('error.timeout', { role: roleName, minutes: Math.max(1, Math.round(err.durationMs / 60000)) });
     case 'bad_output': return t('error.bad_output', { role: roleName });
     case 'stopped': return t('error.stopped');
