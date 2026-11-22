@@ -1,0 +1,90 @@
+{
+  "pr": 13,
+  "headSha": "fa3dda47d153f27a5cff14c48b6f4e16c1c63fb1",
+  "baseSha": "b6afa074708ccb820b3519be2668363748a61b99",
+  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45056776606",
+  "outcomes": {
+    "typecheck": "success",
+    "tokens": "success",
+    "unit": "cancelled",
+    "red-proof": "skipped",
+    "mutation": "skipped",
+    "build": "skipped",
+    "e2e": "skipped",
+    "installer": "skipped",
+    "evidence": "cancelled"
+  },
+  "rows": [
+    {
+      "name": "typecheck",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "tokens",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "unit",
+      "outcome": "cancelled",
+      "result": "cancelled",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "red-proof",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "mutation",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "build",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "e2e",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": "recorded replies only (pre-check)"
+    },
+    {
+      "name": "installer",
+      "outcome": "skipped",
+      "result": "skipped",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "evidence",
+      "outcome": "cancelled",
+      "result": "cancelled",
+      "label": "UNVERIFIED",
+      "note": ""
+    },
+    {
+      "name": "real-ai",
+      "outcome": "",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "UNVERIFIED until run on owner's PC (D9)"
+    }
+  ],
+  "digests": {}
+}
