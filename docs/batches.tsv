@@ -1,0 +1,7 @@
+batch	name	status	spec_files	features
+0	Walking skeleton	active	docs/spec/*	S0.1 S0.2 S0.3 S0.4
+1	MVP: one task to a reviewed PR	locked-next	docs/spec/*	F1 F2 F3 F4
+2	Steer and recover	draft	-	F5 F6 F7 F8 F9
+3	Bots	draft	-	F10 F11
+4	Scale	draft	-	F12 F13 F14 F15
+5	Release	draft	-	F16

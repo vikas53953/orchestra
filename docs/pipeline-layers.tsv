@@ -1,0 +1,5 @@
+layer	added	why	replaces	enforcer	where	last_ran
+spec-lock	2026-11-22	Spec and tests change only by approved CR	-	tools/spec-guard.mjs (manifest hash + CR id in PR body)	ci.yml guard job	-
+layers-register	2026-11-22	Every practice has an enforcer	-	tools/layers-check.mjs	ci.yml guard job	-
+unit+e2e-cassette	2026-11-22	Fast pre-check on recorded real replies	-	vitest + playwright	ci.yml windows job	-
+real-ai-on-pc	2026-11-22	Real AI must pass (D9: on Vikas's PC only)	-	tools/real-ai/run-journey.mjs, record linked on PR	Vikas's PC via remote session	-
