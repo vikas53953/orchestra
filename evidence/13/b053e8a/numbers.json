@@ -1,0 +1,41 @@
+{
+  "base": "b6afa074708ccb820b3519be2668363748a61b99",
+  "head": "b053e8a7cc236338cb9a57e81f231290ea541998",
+  "bundleGzipKB": {
+    "base": 57,
+    "head": 57
+  },
+  "unitMs": {
+    "base": 26574,
+    "head": 26631
+  },
+  "coldStartMs": {
+    "runs": {
+      "base": [
+        646,
+        405,
+        401
+      ],
+      "head": [
+        389,
+        375,
+        359
+      ]
+    },
+    "base": 405,
+    "screens": {
+      "base": [
+        "Home"
+      ],
+      "head": [
+        "Home"
+      ]
+    },
+    "head": 375
+  },
+  "unitOk": {
+    "base": true,
+    "head": true
+  },
+  "notes": []
+}

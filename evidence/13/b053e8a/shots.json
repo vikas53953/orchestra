@@ -1,0 +1,71 @@
+{
+  "touched": true,
+  "base": "b6afa074708ccb820b3519be2668363748a61b99",
+  "head": "b053e8a7cc236338cb9a57e81f231290ea541998",
+  "states": [
+    {
+      "state": "home",
+      "before": "home-before.png",
+      "after": "home-after.png",
+      "compare": "home-compare.png",
+      "changedPct": 0,
+      "changedPixels": 0
+    },
+    {
+      "state": "setup",
+      "before": "setup-before.png",
+      "after": "setup-after.png",
+      "compare": "setup-compare.png",
+      "changedPct": 0,
+      "changedPixels": 0
+    },
+    {
+      "state": "running",
+      "before": "running-before.png",
+      "after": "running-after.png",
+      "compare": "running-compare.png",
+      "changedPct": 0,
+      "changedPixels": 0
+    },
+    {
+      "state": "answered",
+      "before": "answered-before.png",
+      "after": "answered-after.png",
+      "compare": "answered-compare.png",
+      "changedPct": 0,
+      "changedPixels": 0
+    },
+    {
+      "state": "failed",
+      "before": "failed-before.png",
+      "after": "failed-after.png",
+      "compare": "failed-compare.png",
+      "changedPct": 0,
+      "changedPixels": 0
+    },
+    {
+      "state": "long-names",
+      "before": "long-names-before.png",
+      "after": "long-names-after.png",
+      "compare": "long-names-compare.png",
+      "changedPct": 0,
+      "changedPixels": 0
+    },
+    {
+      "state": "loading",
+      "before": "loading-before.png",
+      "after": "loading-after.png",
+      "compare": "loading-compare.png",
+      "changedPct": 0,
+      "changedPixels": 0
+    },
+    {
+      "state": "panel",
+      "before": "panel-before.png",
+      "after": "panel-after.png",
+      "compare": "panel-compare.png",
+      "changedPct": 0,
+      "changedPixels": 0
+    }
+  ]
+}
