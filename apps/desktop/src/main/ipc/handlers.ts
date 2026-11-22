@@ -48,7 +48,11 @@ export function registerIpc(d: IpcDeps): () => void {
 
   ipcMain.handle(IPC.sessionCreate, async (e, arg: unknown): Promise<Session> => {
     assertTrusted(e, d.appUrl);
-    return d.conductor.createSession(validateSessionCreate(arg));
+    const req = validateSessionCreate(arg);
+    // AC-S0.2a: while the setup check blocks (Claude Code missing or signed out, Git missing), no session
+    // may start, even when called straight over IPC rather than from the (hidden) composer.
+    if (!(await d.checker.check()).canStart) throw new IpcValidationError('session:create: setup blocked');
+    return d.conductor.createSession(req);
   });
 
   ipcMain.handle(IPC.sessionList, async (e, arg: unknown): Promise<Session[]> => {
