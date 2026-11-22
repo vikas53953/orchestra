@@ -2,6 +2,7 @@
 // win32: `taskkill /pid <pid> /T /F`. posix: children lead their own process group (detached),
 // so the group gets SIGTERM, then SIGKILL after a grace period.
 import { spawn, type ChildProcess, type SpawnOptions } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
 
 const tracked = new Map<number, ChildProcess>();
 
@@ -29,22 +30,53 @@ export function trackedPids(): number[] {
   return [...tracked.keys()];
 }
 
-function groupAlive(pid: number): boolean {
+/** Linux: state and process group from /proc/<pid>/stat (null when gone). A zombie counts as gone. */
+function procStat(pid: number | string): { state: string; pgrp: number } | null {
   try {
-    process.kill(-pid, 0);
+    const s = readFileSync(`/proc/${pid}/stat`, 'utf8');
+    const rest = s.slice(s.lastIndexOf(')') + 2).split(' ');
+    return { state: rest[0] ?? '', pgrp: Number(rest[2]) };
+  } catch {
+    return null;
+  }
+}
+
+const hasProc = process.platform === 'linux';
+
+function signalAlive(target: number): boolean {
+  try {
+    process.kill(target, 0);
     return true;
   } catch (e) {
     return (e as NodeJS.ErrnoException).code === 'EPERM';
   }
 }
 
-function pidAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (e) {
-    return (e as NodeJS.ErrnoException).code === 'EPERM';
+/** True when pid is running (not a zombie waiting to be reaped). */
+export function isProcessAlive(pid: number): boolean {
+  if (hasProc) {
+    const st = procStat(pid);
+    return st !== null && st.state !== 'Z' && st.state !== 'X';
   }
+  return signalAlive(pid);
+}
+
+/** posix: any live (non-zombie) member left in the process group led by pid. */
+function groupAlive(pid: number): boolean {
+  if (!signalAlive(-pid)) return false;
+  if (!hasProc) return true;
+  let entries: string[];
+  try {
+    entries = readdirSync('/proc');
+  } catch {
+    return true;
+  }
+  for (const e of entries) {
+    if (e.charCodeAt(0) < 48 || e.charCodeAt(0) > 57) continue;
+    const st = procStat(e);
+    if (st && st.pgrp === pid && st.state !== 'Z' && st.state !== 'X') return true;
+  }
+  return false;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -83,7 +115,7 @@ export async function treeKill(pid: number, opts: { graceMs?: number; timeoutMs?
     await taskkill(pid);
     return;
   }
-  const alive = (): boolean => groupAlive(pid) || pidAlive(pid);
+  const alive = (): boolean => groupAlive(pid) || isProcessAlive(pid);
   if (!alive()) return;
   signalGroup(pid, 'SIGTERM');
   const start = Date.now();

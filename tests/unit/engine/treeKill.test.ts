@@ -1,14 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { spawnTracked, treeKill, killAllTracked, trackedPids } from '../../../apps/desktop/src/main/process/treeKill';
+import { spawnTracked, treeKill, killAllTracked, trackedPids, isProcessAlive } from '../../../apps/desktop/src/main/process/treeKill';
 
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
+// zombies waiting for init to reap them count as gone
+const alive = isProcessAlive;
 
 /** Spawns node that spawns a grandchild ignoring SIGTERM; resolves with [childPid, grandchildPid]. */
 function spawnFamily(): Promise<[number, number]> {

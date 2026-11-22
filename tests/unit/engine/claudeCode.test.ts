@@ -5,6 +5,7 @@ import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { ClaudeCodeEngine, buildRunArgs, REASK_PROMPT } from '../../../apps/desktop/src/main/engine/claudeCode';
+import { isProcessAlive } from '../../../apps/desktop/src/main/process/treeKill';
 import type { EngineEvent, RunRequest } from '../../../apps/desktop/src/shared/engine';
 
 const FAKE = resolve(__dirname, 'fake-claude.mjs');
@@ -170,14 +171,7 @@ describe('ClaudeCodeEngine run (fake CLI, real delays, pre-check only)', () => {
     const running = eng.run(teamLead(), (e) => events.push(e), ac.signal);
     while (!events.some((e) => e.kind === 'started')) await new Promise((r) => setTimeout(r, 25));
     const { child, grandchild } = JSON.parse(readFileSync(pidFile, 'utf8')) as { child: number; grandchild: number };
-    const alive = (pid: number): boolean => {
-      try {
-        process.kill(pid, 0);
-        return true;
-      } catch {
-        return false;
-      }
-    };
+    const alive = isProcessAlive; // zombies awaiting reaping count as gone
     expect(alive(child) && alive(grandchild)).toBe(true);
     const t0 = Date.now();
     ac.abort();
