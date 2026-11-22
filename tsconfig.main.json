@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "out",
+    "rootDir": "apps/desktop/src",
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": ["apps/desktop/src/main/**/*.ts", "apps/desktop/src/preload/**/*.ts", "apps/desktop/src/shared/**/*.ts"]
+}
