@@ -1,0 +1,55 @@
+{
+  "touched": true,
+  "base": "fce2f3f54b7f314fd810690450af5f43a5098622",
+  "head": "adc5997791df62fd5587e4ab06e6d73901308d72",
+  "states": [
+    {
+      "state": "home",
+      "before": null,
+      "after": null,
+      "error": "before sha did not render: vite did not start in 60 s: e of Vite serving allow list."
+    },
+    {
+      "state": "setup",
+      "before": null,
+      "after": null,
+      "error": "before sha did not render: vite did not start in 60 s: e of Vite serving allow list."
+    },
+    {
+      "state": "running",
+      "before": null,
+      "after": null,
+      "error": "before sha did not render: vite did not start in 60 s: e of Vite serving allow list."
+    },
+    {
+      "state": "answered",
+      "before": null,
+      "after": null,
+      "error": "before sha did not render: vite did not start in 60 s: e of Vite serving allow list."
+    },
+    {
+      "state": "failed",
+      "before": null,
+      "after": null,
+      "error": "before sha did not render: vite did not start in 60 s: e of Vite serving allow list."
+    },
+    {
+      "state": "long-names",
+      "before": null,
+      "after": null,
+      "error": "before sha did not render: vite did not start in 60 s: e of Vite serving allow list."
+    },
+    {
+      "state": "loading",
+      "before": null,
+      "after": null,
+      "error": "before sha did not render: vite did not start in 60 s: e of Vite serving allow list."
+    },
+    {
+      "state": "panel",
+      "before": null,
+      "after": null,
+      "error": "before sha did not render: vite did not start in 60 s: e of Vite serving allow list."
+    }
+  ]
+}
