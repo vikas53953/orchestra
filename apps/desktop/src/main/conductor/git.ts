@@ -1,6 +1,7 @@
 // Git calls for the conductor. Argument arrays only, hidden window, with a timeout. Owner: T3.
 import { execFile } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
+import { samePath } from '../paths';
 
 export const GIT_TIMEOUT_MS = 30_000;
 
@@ -35,6 +36,6 @@ export function nullDevice(platform: NodeJS.Platform = process.platform): string
 export async function mainRepoOf(top: string, git: RunGit = runGit): Promise<string> {
   const r = await git(['-C', top, 'rev-parse', '--path-format=absolute', '--git-dir', '--git-common-dir']);
   const [gitDir, common] = r.stdout.trim().split(/\r?\n/).map((l) => l.trim());
-  if (!r.ok || !gitDir || !common || resolve(gitDir) === resolve(common)) return resolve(top);
+  if (!r.ok || !gitDir || !common || samePath(gitDir, common)) return resolve(top);
   return resolve(dirname(resolve(common)));
 }

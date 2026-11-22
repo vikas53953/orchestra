@@ -6,7 +6,7 @@ import type { NewEvent, OrchestraEvent } from '../../shared/events';
 import { IPC_ERROR_PREFIX, type EventsAppendPush, type IpcErrorCode, type SessionCreateRequest } from '../../shared/ipc';
 import type { EngineError, Role, Session, SessionState } from '../../shared/types';
 import type { Store } from '../store';
-import { worktreePath as defaultWorktreePath } from '../paths';
+import { canonicalPath, worktreePath as defaultWorktreePath } from '../paths';
 import { EventBatcher, PUSH_BATCH_MS } from './batcher';
 import { mainRepoOf, nullDevice, repoTopLevel, runGit, type RunGit } from './git';
 
@@ -100,7 +100,7 @@ export class Conductor {
     if (task === '') throw new SessionError('empty_task');
     const top = await repoTopLevel(req.repoPath, this.git);
     if (!top) throw new SessionError('not_git');
-    const repoPath = await mainRepoOf(top, this.git);
+    const repoPath = canonicalPath(await mainRepoOf(top, this.git)); // real long form (no 8.3 names)
 
     const head = await this.git(['-C', repoPath, 'rev-parse', '--verify', '--quiet', 'HEAD']);
     if (!head.ok) throw new SessionError('no_commits');
@@ -108,13 +108,14 @@ export class Conductor {
     const baseBranch = br.ok ? br.stdout.trim() : 'HEAD';
 
     const id = this.newId();
-    const worktreePath = this.wtPath(repoPath, id);
+    const plannedWorktree = this.wtPath(repoPath, id);
     // core.hooksPath -> null device: the user's post-checkout hook must not run in our worktree.
     const wt = await this.git(
-      ['-C', repoPath, '-c', `core.hooksPath=${nullDevice()}`, 'worktree', 'add', '--detach', worktreePath, 'HEAD'],
+      ['-C', repoPath, '-c', `core.hooksPath=${nullDevice()}`, 'worktree', 'add', '--detach', plannedWorktree, 'HEAD'],
       120_000,
     );
     if (!wt.ok) throw new SessionError('worktree_failed', wt.stderr.trim().slice(0, 300));
+    const worktreePath = canonicalPath(plannedWorktree);
 
     const title = makeTitle(task);
     let session: Session;

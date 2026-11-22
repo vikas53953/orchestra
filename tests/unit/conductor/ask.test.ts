@@ -7,20 +7,21 @@ import { ASK_SYSTEM_APPEND, Conductor, SessionError, makeTitle } from '../../../
 import { Store } from '../../../apps/desktop/src/main/store';
 import type { Engine } from '../../../apps/desktop/src/shared/engine';
 import { ipcErrorCode, type EventsAppendPush } from '../../../apps/desktop/src/shared/ipc';
-import { ANSWER_STEPS, fakeEngine, git, makeRepo, sleep } from './helpers';
+import { ANSWER_STEPS, fakeEngine, git, makeRepo, sleep, worktreeList } from './helpers';
+import { canonicalPath, samePath } from '../../../apps/desktop/src/main/paths';
 
 const cleanup: Array<() => void> = [];
 afterEach(() => { for (const f of cleanup.splice(0)) f(); });
 
 function setup(engine: Engine) {
-  const { root, repo } = makeRepo();
+  const { base, root, repo } = makeRepo();
   const store = new Store(':memory:');
   const pushes: EventsAppendPush[] = [];
   const c = new Conductor({
     store, engine: () => engine, push: (p) => pushes.push(p),
     worktreePathFor: (r, id) => join(root, '.orchestra-worktrees', 'sample-repo', id),
   });
-  cleanup.push(() => { store.close(); rmSync(root, { recursive: true, force: true }); });
+  cleanup.push(() => { store.close(); rmSync(base, { recursive: true, force: true }); });
   return { root, repo, store, pushes, c };
 }
 
@@ -179,7 +180,8 @@ describe('conductor ask session', () => {
     expect(git(repo, 'rev-parse', 'HEAD')).toBe(headBefore);
     expect(git(repo, 'rev-parse', '--abbrev-ref', 'HEAD').trim()).toBe('main');
     // the only change in the main repo is the worktree registration
-    expect(git(repo, 'worktree', 'list', '--porcelain')).toContain(s.worktreePath);
+    expect(worktreeList(repo).some((w) => samePath(w, s.worktreePath))).toBe(true);
+    expect(s.worktreePath).toBe(canonicalPath(s.worktreePath));
   });
 });
 
@@ -206,8 +208,10 @@ describe('verifier fixes (PR #5)', () => {
     await c.whenDone(first.id);
     const second = await c.createSession({ repoPath: join(first.worktreePath, 'src'), task: 'two' });
     await c.whenDone(second.id);
-    expect(second.repoPath).toBe(repo);
-    expect(store.getSession(second.id)?.repoPath).toBe(repo);
+    expect(samePath(second.repoPath, repo)).toBe(true);
+    expect(second.repoPath).toBe(canonicalPath(repo)); // stored in its real long form
+    expect(store.getSession(second.id)?.repoPath).toBe(second.repoPath);
+    expect(samePath(first.repoPath, second.repoPath)).toBe(true);
     expect(second.worktreePath).not.toContain(first.id);
   });
 
@@ -230,7 +234,8 @@ describe('verifier fixes (PR #5)', () => {
     await expect(c.createSession({ repoPath: repo, task: 'q' })).rejects.toThrow('disk full');
     expect(wt).not.toBe('');
     expect(existsSync(wt)).toBe(false);
-    expect(git(repo, 'worktree', 'list', '--porcelain')).not.toContain(wt);
+    expect(worktreeList(repo).some((w) => samePath(w, wt))).toBe(false);
+    expect(worktreeList(repo)).toHaveLength(1);
   });
 
   it('conductor errors carry the shared IPC error prefix (ipcErrorCode)', async () => {

@@ -1,7 +1,7 @@
 // Test helpers: a temp git repo made from fixtures/sample-repo, and a fake Engine with real delays.
 // Anything proven with this fake engine is "pre-check only".
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { Engine, EngineEvent, RunRequest, RunResult } from '../../../apps/desktop/src/shared/engine';
@@ -13,9 +13,17 @@ export function git(cwd: string, ...args: string[]): string {
   return execFileSync('git', args, { cwd, encoding: 'utf8' });
 }
 
-/** <tmp>/root/sample-repo as a fresh git repo with one commit on branch main. */
-export function makeRepo(): { root: string; repo: string } {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'orch-conductor-')));
+/**
+ * A fresh git repo (one commit on main) made from fixtures/sample-repo, reached through a link:
+ * `root` is <tmp>/LINK~1 -> <tmp>/long-real-root, the posix twin of a Windows 8.3 short TEMP path
+ * (C:\\Users\\RUNNER~1). On Windows os.tmpdir() may itself be a short name. `base` is what to delete.
+ */
+export function makeRepo(): { base: string; root: string; repo: string } {
+  const base = mkdtempSync(join(tmpdir(), 'orch-conductor-'));
+  const real = join(base, 'long-real-root');
+  mkdirSync(real);
+  const root = join(base, 'LINK~1');
+  symlinkSync(real, root, 'junction');
   const repo = join(root, 'sample-repo');
   cpSync(FIXTURE, repo, { recursive: true });
   git(repo, 'init', '-q', '-b', 'main');
@@ -24,7 +32,13 @@ export function makeRepo(): { root: string; repo: string } {
   git(repo, 'config', 'commit.gpgsign', 'false');
   git(repo, 'add', '-A');
   git(repo, 'commit', '-q', '-m', 'init');
-  return { root, repo };
+  return { base, root, repo };
+}
+
+/** The folders `git worktree list --porcelain` reports (git prints forward slashes on Windows). */
+export function worktreeList(repo: string): string[] {
+  return git(repo, 'worktree', 'list', '--porcelain').split(/\r?\n/)
+    .filter((l) => l.startsWith('worktree ')).map((l) => l.slice('worktree '.length));
 }
 
 export interface FakeStep { delayMs: number; event: EngineEvent }

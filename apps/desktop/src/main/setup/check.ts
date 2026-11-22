@@ -1,7 +1,7 @@
 // Setup check. Spec: PRD.md R0.3, test-contract AC-S0.2a/b, B8. Owner: T3.
 import { execFile } from 'node:child_process';
 import { existsSync, promises as fsp } from 'node:fs';
-import { dirname, parse } from 'node:path';
+import { dirname, parse, win32 } from 'node:path';
 import type { Engine, ProbeResult } from '../../shared/engine';
 import type { SetupItem, SetupReport } from '../../shared/types';
 
@@ -13,11 +13,48 @@ const PROBE_TIMEOUT_MS = 60_000;
 export interface CmdResult { ok: boolean; stdout: string; stderr: string }
 export type RunCmd = (file: string, args: string[], timeoutMs: number) => Promise<CmdResult>;
 
-/** Runs a binary with an argument array (never a shell string), hidden window, with a timeout. */
+export interface ResolvedCommand { file: string; args: string[]; verbatim: boolean }
+
+const SAFE_ARG = /^[A-Za-z0-9._=:\/-]+$/;
+
+/**
+ * How to run `name args` without a shell. Posix: by name through PATH. Windows: search PATH with
+ * PATHEXT like a shell does; an .exe/.com runs directly, a .cmd/.bat shim runs via `cmd.exe /d /s /c`
+ * (Node refuses to spawn those directly). Only fixed, plain arguments may go through cmd.exe.
+ */
+export function resolveCommand(
+  name: string, args: string[], env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform, exists: (f: string) => boolean = existsSync,
+): ResolvedCommand {
+  if (platform !== 'win32') return { file: name, args, verbatim: false };
+  const pathVar = env.PATH ?? env.Path ?? '';
+  const exts = (env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean);
+  for (const dir of pathVar.split(';').filter(Boolean)) {
+    for (const ext of exts) {
+      const f = win32.join(dir, name + ext);
+      if (!exists(f)) continue;
+      if (/\.(cmd|bat)$/i.test(f)) {
+        if (!args.every((a) => SAFE_ARG.test(a))) throw new Error(`unsafe argument for ${name}`);
+        return { file: env.ComSpec ?? 'cmd.exe', args: ['/d', '/s', '/c', `""${f}" ${args.join(' ')}"`], verbatim: true };
+      }
+      return { file: f, args, verbatim: false };
+    }
+  }
+  return { file: name, args, verbatim: false };
+}
+
+/** Runs a binary with an argument array (never a shell string with user text), hidden window, with a timeout. */
 export function makeRunCmd(env: NodeJS.ProcessEnv = process.env): RunCmd {
-  return (file, args, timeoutMs) => new Promise((resolve) => {
-    execFile(file, args, { env, timeout: timeoutMs, windowsHide: true, encoding: 'utf8', maxBuffer: 1024 * 1024 },
-      (err, stdout, stderr) => resolve({ ok: !err, stdout: String(stdout ?? ''), stderr: String(stderr ?? '') }));
+  return (name, argv, timeoutMs) => new Promise((resolve) => {
+    let cmd: ResolvedCommand;
+    try { cmd = resolveCommand(name, argv, env); } catch (e) {
+      resolve({ ok: false, stdout: '', stderr: String(e) });
+      return;
+    }
+    execFile(cmd.file, cmd.args, {
+      env, timeout: timeoutMs, windowsHide: true, windowsVerbatimArguments: cmd.verbatim,
+      encoding: 'utf8', maxBuffer: 1024 * 1024,
+    }, (err, stdout, stderr) => resolve({ ok: !err, stdout: String(stdout ?? ''), stderr: String(stderr ?? '') }));
   });
 }
 
