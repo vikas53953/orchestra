@@ -33,6 +33,20 @@ jobs:
     needs: guard
     runs-on: windows-latest
     timeout-minutes: 40
+    # Each gate runs even when an earlier one failed, so the evidence comment can list every failure at once.
+    # Outcomes feed the publish job (they come from Actions, not from files the PR code writes).
+    outputs:
+      typecheck: ${{ steps.typecheck.outcome }}
+      tokens: ${{ steps.tokens.outcome }}
+      unit: ${{ steps.unit.outcome }}
+      red_proof: ${{ steps.red_proof.outcome }}
+      mutation: ${{ steps.mutation.outcome }}
+      build: ${{ steps.build.outcome }}
+      e2e: ${{ steps.e2e.outcome }}
+      installer: ${{ steps.installer.outcome }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,27 +55,48 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint:tokens
-      - run: npm test
+      - id: install
+        run: npm ci && mkdir -p gate-logs
+      - id: typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run typecheck 2>&1 | tee gate-logs/typecheck.log
+      - id: tokens
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint:tokens 2>&1 | tee gate-logs/tokens.log
+      - id: unit
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npx vitest run --reporter=default --reporter=junit --outputFile.junit=gate-logs/junit.xml 2>&1 | tee gate-logs/unit.log
       - name: red proof (changed tests must fail on the base code)
-        if: github.event_name == 'pull_request'
-        shell: bash
+        id: red_proof
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && github.event_name == 'pull_request' }}
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: node tools/red-proof.mjs "$BASE_SHA"
+        run: node tools/red-proof.mjs "$BASE_SHA" 2>&1 | tee gate-logs/red-proof.log
       - name: mutation testing (planner, parser, validators; break below 70%)
-        shell: bash
+        id: mutation
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
-          if ls apps/desktop/src/main/engine/streamParser.ts >/dev/null 2>&1; then npm run mutation; else echo "mutation: no target files yet"; fi
-      - run: npm run build
+          if ls apps/desktop/src/main/engine/streamParser.ts >/dev/null 2>&1; then npm run mutation 2>&1 | tee gate-logs/mutation.log; else echo "mutation: no target files yet"; fi
+      - id: build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build 2>&1 | tee gate-logs/build.log
       - name: e2e journeys on recorded replies (pre-check only; real AI runs on Vikas's PC, D9)
-        shell: bash
+        id: e2e
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: gate-logs/e2e-junit.xml
         run: |
-          if ls tests/e2e/*.spec.ts >/dev/null 2>&1; then npx playwright test --trace off; else echo "e2e: no journeys on this branch yet"; fi
+          if ls tests/e2e/*.spec.ts >/dev/null 2>&1; then npx playwright test --trace off --reporter=list,junit 2>&1 | tee gate-logs/e2e.log; else echo "e2e: no journeys on this branch yet"; fi
       - name: installer
-        run: npx electron-builder --win nsis --x64 --publish never
+        id: installer
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npx electron-builder --win nsis --x64 --publish never 2>&1 | tee gate-logs/installer.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gate-logs
+          path: gate-logs/
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -70,3 +105,95 @@ jobs:
             dist/*.exe
             test-results/
           retention-days: 14
+
+  evidence:
+    # Runs PR code (builds and launches both shas), so it can only READ the repo. It writes nothing anywhere:
+    # it uploads pictures and numbers as an artifact for the publish job.
+    name: evidence (before/after pictures, numbers)
+    needs: guard
+    if: github.event_name == 'pull_request'
+    runs-on: windows-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install chromium
+      - name: before/after pictures of every screen state (only when screen files changed)
+        run: node tools/evidence/shots.mjs --base "$BASE_SHA" --head "$HEAD_SHA" --out evidence-out
+      - name: numbers at base and head (bundle gzip, unit time, cold start median of 3)
+        if: ${{ !cancelled() }}
+        run: node tools/evidence/numbers.mjs --base "$BASE_SHA" --head "$HEAD_SHA" --out evidence-out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: evidence
+          path: evidence-out/
+          retention-days: 30
+
+  publish:
+    # The only job that can write. It runs NO PR code: no npm install, no build. It checks out the BASE sha
+    # (already-merged, trusted scripts), downloads the two artifacts as data, pushes them to the orphan
+    # `evidence` branch and updates the one PR comment. Fork PRs get a read-only token, so they are skipped.
+    name: publish evidence (PR comment + evidence branch)
+    needs: [windows, evidence]
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 1
+      - name: publisher from the base sha (bootstrap from head only while the base has none yet)
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ ! -f tools/evidence/publish.mjs ]; then
+            echo "base has no publisher yet; taking publish.mjs + lib.mjs (node built-ins only) from the head sha"
+            git fetch --depth=1 origin "$HEAD_SHA"
+            git checkout "$HEAD_SHA" -- tools/evidence/publish.mjs tools/evidence/lib.mjs
+          fi
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: evidence
+          path: evidence-in
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: gate-logs
+          path: gate-logs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: push evidence and update the PR comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          OUTCOMES: ${{ toJSON(needs.windows.outputs) }}
+          EVIDENCE_RESULT: ${{ needs.evidence.result }}
+          EVIDENCE_DIR: evidence-in
+          GATE_LOGS_DIR: gate-logs
+        run: node tools/evidence/publish.mjs
