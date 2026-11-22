@@ -1,0 +1,101 @@
+{
+  "pr": 10,
+  "headSha": "44f8a9a94082a41fa48eae768f7bfe921124cbe1",
+  "baseSha": "adc5997791df62fd5587e4ab06e6d73901308d72",
+  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45047198563",
+  "outcomes": {
+    "build": "success",
+    "e2e": "failure",
+    "installer": "success",
+    "typecheck": "success",
+    "tokens": "success",
+    "unit": "success",
+    "red-proof": "success",
+    "mutation": "success",
+    "evidence": "success"
+  },
+  "rows": [
+    {
+      "name": "typecheck",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "tokens",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "unit",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "red-proof",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "mutation",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "build",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "e2e",
+      "outcome": "failure",
+      "result": "FAIL",
+      "label": "CONFIRMED",
+      "note": "recorded replies only (pre-check)"
+    },
+    {
+      "name": "installer",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "evidence",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": ""
+    },
+    {
+      "name": "real-ai",
+      "outcome": "",
+      "result": "not run",
+      "label": "UNVERIFIED",
+      "note": "UNVERIFIED until run on owner's PC (D9)"
+    }
+  ],
+  "digests": {
+    "e2e": {
+      "tests": [
+        {
+          "file": "sprint0.spec.ts",
+          "name": "AC-S0.1 app opens on Home within 3 s",
+          "line": "Error: no window within 3 s of launch"
+        }
+      ],
+      "lines": []
+    }
+  }
+}
