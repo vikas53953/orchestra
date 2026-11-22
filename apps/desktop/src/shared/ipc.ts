@@ -17,6 +17,23 @@ export const IPC = {
   eventsAppend: 'events:append',
 } as const;
 
+/** Errors cross IPC as Error messages prefixed "orchestra:<code>" (Electron keeps only the message). */
+export const IPC_ERROR_PREFIX = 'orchestra:';
+export type IpcErrorCode = 'not_git' | 'empty_task' | 'no_commits' | 'worktree_failed' | 'bad_request';
+/** Renderer copy key for each IPC error code. */
+export const IPC_ERROR_COPY = {
+  not_git: 'home.repo.notGit',
+  empty_task: 'home.error.emptyTask',
+  no_commits: 'home.error.noCommits',
+  worktree_failed: 'home.error.worktreeFailed',
+  bad_request: 'home.error.badRequest',
+} as const;
+export function ipcErrorCode(err: unknown): IpcErrorCode | null {
+  const msg = err instanceof Error ? err.message : String(err);
+  const m = /orchestra:(not_git|empty_task|no_commits|worktree_failed|bad_request)/.exec(msg);
+  return m ? (m[1] as IpcErrorCode) : null;
+}
+
 export interface RepoPickResult { path: string; name: string; isGitRepo: boolean }
 export interface SessionCreateRequest { repoPath: string; task: string }
 export interface SessionWithEvents { session: Session; events: OrchestraEvent[] }
