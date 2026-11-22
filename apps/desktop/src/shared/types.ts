@@ -50,6 +50,8 @@ export interface SetupItem {
   /** copy key for the fix instruction, shown when status != ok */
   fixKey: string | null;
   detail: string | null; // e.g. version string or free GB
+  /** for the disk item: the drive or mount checked, e.g. "C:" (fills {drive} in setup.fix.disk) */
+  drive?: string;
 }
 export interface SetupReport {
   items: SetupItem[];

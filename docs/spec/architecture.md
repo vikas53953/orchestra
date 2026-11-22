@@ -35,20 +35,23 @@ Fonts: Inter (bundled, weights 330-600) [decision: round 3].
 ## 4. Engine adapter (LLD)
 ```ts
 interface Engine {
-  id: 'claude-code';
-  probe(): Promise<ProbeResult>;                       // installed? signed in? version
+  id: 'claude-code' | 'cassette';                     // CR-2: 'cassette' replays recorded replies, tests only
+  probe(opts?: { signedIn?: boolean }): Promise<ProbeResult>;                       // installed? signed in? version
   run(req: RunRequest, onEvent: (e: EngineEvent) => void, signal: AbortSignal): Promise<RunResult>;
 }
 type RunRequest = { role: Role; cwd: string; prompt: string; systemAppend: string;
   allowedTools: string[]; disallowedTools: string[]; permissionMode: 'plan'|'acceptEdits';
-  maxTurns: number; timeoutMs: number; resumeSessionId?: string; outputSchema?: JsonSchema };
+  maxTurns: number; timeoutMs: number; resumeSessionId?: string;
+  outputSchema?: (value: unknown) => boolean };          // CR-2: a check function per role schema
 type EngineEvent =
  | { kind: 'started'; engineSessionId: string; model: string }
  | { kind: 'text'; text: string }                       // assistant prose, streamed
  | { kind: 'tool_call'; tool: string; summary: string; path?: string }
  | { kind: 'tool_result'; tool: string; ok: boolean; summary: string }
  | { kind: 'usage'; inputTokens: number; outputTokens: number };
-type RunResult = { ok: boolean; finalText: string; json?: unknown; error?: EngineError; durationMs: number };
+type RunResult = { ok: boolean; finalText: string; json?: unknown; error?: EngineError;
+  errorDetail?: string;                                 // CR-2: plain detail, e.g. usage-limit reset time (§9)
+  durationMs: number };
 type EngineError = 'not_installed'|'not_signed_in'|'rate_limited'|'timeout'|'bad_output'|'crashed'|'stopped';
 ```
 ClaudeCodeEngine spawns:
