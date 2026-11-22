@@ -1,0 +1,6 @@
+# Locked paths: changes need an approved Change Request (docs/change-requests/CR-<n>.md).
+/docs/spec/ @vikas53953
+/docs/change-requests/ @vikas53953
+/tests/e2e/ @vikas53953
+/tests/golden/ @vikas53953
+/tools/spec-guard.mjs @vikas53953
