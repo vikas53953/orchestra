@@ -35,6 +35,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -43,6 +45,16 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint:tokens
       - run: npm test
+      - name: red proof (changed tests must fail on the base code)
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          git fetch --no-tags --depth=200 origin ${{ github.event.pull_request.base.ref }}
+          node tools/red-proof.mjs ${{ github.event.pull_request.base.sha }}
+      - name: mutation testing (planner, parser, validators; break below 70%)
+        shell: bash
+        run: |
+          if ls apps/desktop/src/main/engine/streamParser.ts >/dev/null 2>&1; then npm run mutation; else echo "mutation: no target files yet"; fi
       - run: npm run build
       - name: e2e journeys on recorded replies (pre-check only; real AI runs on Vikas's PC, D9)
         run: npx playwright test --trace off

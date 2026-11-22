@@ -4,3 +4,5 @@ layers-register	2026-11-22	Every practice has an enforcer	-	tools/layers-check.m
 unit+e2e-cassette	2026-11-22	Fast pre-check on recorded real replies	-	vitest + playwright (tests/e2e, locked by CR-1)	ci.yml windows job	-
 real-ai-on-pc	2026-11-22	Real AI must pass (D9: on Vikas's PC only)	-	tools/real-ai/run-journey.mjs, record linked on PR	Vikas's PC via remote session	-
 windows-ci	2026-11-22	Target-OS checks on every PR: types, tokens, unit, build, cassette e2e, installer	-	.github/workflows/ci.yml windows job	GitHub Actions windows-latest	-
+red-proof	2026-11-22	Changed tests must fail on the base code (pipeline C.03 red proof)	-	tools/red-proof.mjs	ci.yml windows job (pull_request)	-
+mutation	2026-11-22	Planted bugs in parser/planner/validators must be caught (pipeline C.03 mutation)	-	stryker.config.json, break < 70%	ci.yml windows job	-
