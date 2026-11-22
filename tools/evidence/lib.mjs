@@ -80,9 +80,11 @@ export function logDigest(log, max = 8) {
   return (log ?? '').replace(/\r\n/g, '\n').split('\n').map((l) => l.trimEnd()).filter((l) => l.trim() && LOG_HITS.test(l)).slice(0, max).map((l) => l.trim());
 }
 
-/** Escape text for one markdown line: no pings, no code-span breakouts, no HTML, no table breaks. */
+/** Escape text for one markdown line: no pings, no code-span breakouts, no HTML, no links/emphasis, no table breaks. */
 export function mdInline(s, max = 200) {
-  const t = String(s ?? '').replace(/\s+/g, ' ').trim().replace(/`/g, "'").replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\|/g, '\\|').replace(/@/g, '@\u200b');
+  const t = String(s ?? '').replace(/\s+/g, ' ').trim().replace(/`/g, "'")
+    .replace(/[\\[\]()*_~|]/g, (c) => `\\${c}`) // no links, emphasis, strike-through or table breaks
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/@/g, '@\u200b');
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 }
 

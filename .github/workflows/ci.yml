@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -51,6 +52,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -147,9 +149,12 @@ jobs:
           retention-days: 30
 
   publish:
-    # The only job that can write. It runs NO PR code: no npm install, no build. It checks out the BASE sha
-    # (already-merged, trusted scripts), downloads the two artifacts as data, pushes them to the orphan
-    # `evidence` branch and updates the one PR comment. Fork PRs get a read-only token, so they are skipped.
+    # The only job that can write. It does not install, build or test the PR. It checks out the BASE sha and runs
+    # the publisher from there (already-merged scripts), downloads the two artifacts as data, pushes them to the
+    # orphan `evidence` branch and updates the one PR comment. Fork PRs get a read-only token, so they are skipped.
+    # TEMPORARY EXCEPTION: while the base has no tools/evidence/publish.mjs (only until T5b merges), the next step
+    # takes publish.mjs + lib.mjs from the PR head, i.e. it runs PR code with write permission. Remove that fallback
+    # in the follow-up after merge.
     name: publish evidence (PR comment + evidence branch)
     needs: [windows, evidence]
     if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
@@ -167,8 +172,10 @@ jobs:
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if [ ! -f tools/evidence/publish.mjs ]; then
-            echo "base has no publisher yet; taking publish.mjs + lib.mjs (node built-ins only) from the head sha"
+          if [ -f tools/evidence/publish.mjs ]; then
+            echo "publisher: using the base sha's tools/evidence/publish.mjs"
+          else
+            echo "::warning title=evidence publisher from PR head::base lacks tools/evidence/publish.mjs, so this run uses the PR head's publish.mjs + lib.mjs with write permission (temporary bootstrap; remove after T5b merges)"
             git fetch --depth=1 origin "$HEAD_SHA"
             git checkout "$HEAD_SHA" -- tools/evidence/publish.mjs tools/evidence/lib.mjs
           fi

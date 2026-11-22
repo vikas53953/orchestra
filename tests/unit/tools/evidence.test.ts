@@ -155,6 +155,14 @@ describe('the PR comment', () => {
     expect(mdInline('ping @vikas `x` <img src=x> | y\nz')).toBe("ping @​vikas 'x' &lt;img src=x&gt; \\| y z");
     expect(mdInline('a'.repeat(500)).length).toBeLessThanOrEqual(200);
   });
+  it('a name cannot become a link, emphasis or strike-through', () => {
+    expect(mdInline('a](http://evil) [x')).toBe('a\\]\\(http://evil\\) \\[x');
+    expect(mdInline('**b')).toBe('\\*\\*b');
+    expect(mdInline('_c_ ~~d~~ e\\')).toBe('\\_c\\_ \\~\\~d\\~\\~ e\\\\');
+    const c = buildComment({ repo: 'o/r', pr: 1, headSha: 'a'.repeat(40), baseSha: 'b', runUrl: 'u', rows: checkRows({}), digests: {}, numbers: null,
+      shots: { touched: true, states: [{ state: 'x](http://evil) [y', changedPct: 1, compare: 'x.png' }] }, rawBase: 'r' });
+    expect(c).not.toContain('](http://evil)');
+  });
   it('a test name inside a code span keeps its < > as typed but cannot close the span', () => {
     expect(mdCode('suite > B4 <crash> `x`\n@y')).toBe("suite > B4 <crash> 'x' @y");
     const d = buildFailureDigest(checkRows({ unit: 'failure' }), { unit: { tests: [{ file: 'f.ts', name: 'a > b', line: 'x' }] } });

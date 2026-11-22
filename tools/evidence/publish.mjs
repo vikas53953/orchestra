@@ -1,4 +1,4 @@
-// Publish job (the only job with write permission; runs no PR code, needs no npm install):
+// Publish job (the only job with write permission; runs no npm install or build of the PR):
 // reads the evidence + gate-log artifacts as untrusted data, writes evidence/<pr>/<sha7>/ to the orphan
 // `evidence` branch, and creates or updates the one PR comment that carries MARKER.
 // Env: GITHUB_TOKEN GITHUB_REPOSITORY PR_NUMBER HEAD_SHA BASE_SHA RUN_URL OUTCOMES(json) EVIDENCE_DIR GATE_LOGS_DIR
@@ -21,7 +21,7 @@ if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !Number.isInteger(pr) || pr <= 0 |
 const sha7 = headSha.slice(0, 7);
 const MAX_FILE = 8 * 1024 * 1024;
 
-const readText = (p) => { try { return statSync(p).size <= MAX_FILE ? readFileSync(p, 'utf8') : ''; } catch { return ''; } };
+const readText = (p) => { try { const st = statSync(p); return st.isFile() && st.size <= MAX_FILE ? readFileSync(p, 'utf8') : ''; } catch { return ''; } };
 const readJson = (p) => { try { return JSON.parse(readText(p)); } catch { return null; } };
 
 // Gate outcomes come from the Actions runtime (needs.windows.outputs), not from the artifact.
@@ -45,7 +45,8 @@ for (const g of GATES) {
 const evDir = env.EVIDENCE_DIR ?? 'evidence-out';
 const shots = readJson(join(evDir, 'shots.json'));
 const numbers = readJson(join(evDir, 'numbers.json'));
-const files = existsSync(evDir) ? readdirSync(evDir).filter((f) => safeEvidenceName(f) && statSync(join(evDir, f)).size <= MAX_FILE).slice(0, 80) : [];
+const isSmallFile = (p) => { try { const st = statSync(p); return st.isFile() && st.size <= MAX_FILE; } catch { return false; } };
+const files = existsSync(evDir) ? readdirSync(evDir).filter((f) => safeEvidenceName(f) && isSmallFile(join(evDir, f))).slice(0, 80) : [];
 if (shots?.states) shots.states = shots.states.filter((s) => s && typeof s.state === 'string').map((s) => ({ ...s, compare: safeEvidenceName(String(s.compare ?? '')) && files.includes(s.compare) ? s.compare : null }));
 
 const ctx = { repo, pr, headSha, baseSha: env.BASE_SHA, runUrl: env.RUN_URL, rows, digests, numbers, shots };
