@@ -1,7 +1,9 @@
 // CassetteEngine replays synthetic stream-json through the real parser with real delays. Pre-check only.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { isProcessAlive, trackedPids } from '../../../apps/desktop/src/main/process/treeKill';
 import { CassetteEngine } from '../../../apps/desktop/src/main/engine/cassette';
 import { ClaudeCodeEngine } from '../../../apps/desktop/src/main/engine/claudeCode';
 import { createEngine } from '../../../apps/desktop/src/main/engine';
@@ -56,6 +58,29 @@ describe('CassetteEngine (pre-check only)', () => {
     const r = await eng.run(req, () => {}, ac.signal);
     expect(r).toMatchObject({ ok: false, error: 'stopped' });
     expect(r.durationMs).toBeLessThan(1500);
+  });
+
+  it('CR-3 replays in a real, tracked child process that Stop tree-kills (pid recorded for e2e)', async () => {
+    const pidFile = join(mkdtempSync(join(tmpdir(), 'cassette-pid-')), 'logs', 'pids.txt');
+    const eng = new CassetteEngine(J0, { env: { ...process.env, ORCHESTRA_CASSETTE_DELAY_MS: '400', ORCHESTRA_CASSETTE_PID_FILE: pidFile }, log: () => {} });
+    const ac = new AbortController();
+    let pid = 0;
+    let aliveMidRun = false;
+    let trackedMidRun = false;
+    setTimeout(() => {
+      pid = Number(readFileSync(pidFile, 'utf8').trim());
+      aliveMidRun = isProcessAlive(pid);
+      trackedMidRun = trackedPids().includes(pid);
+      ac.abort();
+    }, 900);
+    const r = await eng.run(req, () => {}, ac.signal);
+    expect(r).toMatchObject({ ok: false, error: 'stopped' });
+    expect(pid).toBeGreaterThan(0);
+    expect(pid).not.toBe(process.pid);
+    expect(aliveMidRun).toBe(true);
+    expect(trackedMidRun).toBe(true);
+    expect(isProcessAlive(pid)).toBe(false);
+    expect(trackedPids()).not.toContain(pid);
   });
 
   it('missing schema JSON -> bad_output (no re-ask on a cassette)', async () => {
