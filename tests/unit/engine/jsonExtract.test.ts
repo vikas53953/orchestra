@@ -36,12 +36,16 @@ describe('extractLastJson', () => {
     expect(extractLastJson('{"a":1} {"b":{"c":2}} {oops')).toEqual({ b: { c: 2 } });
   });
 
+  // Stryker's instrumented code is ~5-10x slower, so its workers get a larger bound. 10 s still fails the
+  // old quadratic scan (~93 s on this input); the normal run keeps the strict 500 ms.
+  const PERF_BOUND_MS = process.env.STRYKER_MUTATOR_WORKER ? 10_000 : 500;
+
   it('200 KB of stray braces and quotes is handled in well under a second (linear scan)', () => {
     const cases = ['{'.repeat(200_000) + '{"a":1}', '{ "x '.repeat(40_000) + '{"a":1}', '{"a":'.repeat(40_000) + ' {"a":1}'];
     for (const t of cases) {
       const t0 = performance.now();
       expect(extractLastJson(t)).toEqual({ a: 1 });
-      expect(performance.now() - t0).toBeLessThan(500);
+      expect(performance.now() - t0).toBeLessThan(PERF_BOUND_MS);
     }
   });
 
