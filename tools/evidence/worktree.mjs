@@ -30,7 +30,8 @@ export function readAt(dir, rel) {
 
 /** Start the renderer's vite dev server in `dir` on `port`; resolves once it answers. */
 export async function startVite(dir, port) {
-  const child = spawn(process.execPath, [join(dir, 'node_modules/vite/bin/vite.js'), '--port', String(port), '--strictPort', '--host', '127.0.0.1'], { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] });
+  const serve = join(import.meta.dirname, 'vite-serve.mjs');
+  const child = spawn(process.execPath, [serve, String(port), join(process.cwd(), 'node_modules')], { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] });
   let log = '';
   child.stdout.on('data', (d) => { log += d; });
   child.stderr.on('data', (d) => { log += d; });
