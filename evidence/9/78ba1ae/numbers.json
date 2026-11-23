@@ -1,0 +1,38 @@
+{
+  "base": "fce2f3f54b7f314fd810690450af5f43a5098622",
+  "head": "78ba1ae905f9729215a59fc68b7b78225d605a4b",
+  "bundleGzipKB": {
+    "base": 46.2,
+    "head": 57
+  },
+  "unitMs": {
+    "base": 455,
+    "head": 42159
+  },
+  "coldStartMs": {
+    "runs": {
+      "base": [],
+      "head": [
+        631,
+        537,
+        522
+      ]
+    },
+    "base": null,
+    "screens": {
+      "base": [],
+      "head": [
+        "Home"
+      ]
+    },
+    "head": 537
+  },
+  "unitOk": {
+    "base": false,
+    "head": true
+  },
+  "notes": [
+    "unit tests were red at base; time still measured",
+    "cold start n/a at base: no Home or Setup screen became visible — run 1: page.waitForSelector: Timeout 30000ms exceeded."
+  ]
+}
