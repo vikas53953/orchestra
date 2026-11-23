@@ -1,0 +1,9 @@
+.o-face { position: relative; display: inline-block; flex-shrink: 0; line-height: 0; }
+.o-face svg { display: block; }
+.o-eyes { transition: transform var(--o-m-eyes) ease-in-out; }
+.o-eyes.is-work { transform: translateX(0.75px); }
+.o-face-dot { position: absolute; right: -2px; bottom: -2px; width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 0 0 2px var(--o-ring, var(--o-well)); }
+.o-face-dot.is-done { background: var(--o-done); }
+.o-face-dot.is-fail { background: var(--o-fail); }
+.o-face-dot.is-needs { background: var(--o-needs); }
+@media (prefers-reduced-motion: reduce) { .o-eyes { transition: none; } }

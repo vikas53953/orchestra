@@ -1,0 +1,71 @@
+name: real-ai
+# Real-AI journeys on Vikas's PC (D9). Manual only (see below).
+# SECURITY: the repo is public, so this NEVER runs on pull_request; only a manual run by the owner can start it.
+# Vikas, 2026-11-23 03:30 UTC: "dont run 24/7, run normally". No automatic triggers: real-AI journeys run on
+# his PC in a session when needed. This workflow stays as a manual option only.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: real-ai
+  cancel-in-progress: false
+jobs:
+  journeys:
+    name: real-ai journeys (pass^3 on Vikas's PC)
+    if: github.repository == 'vikas53953/orchestra'
+    runs-on: [self-hosted, Windows, orchestra-realai]
+    timeout-minutes: 60
+    env:
+      REAL_AI: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: preflight (one cheap call, names the cause)
+        shell: pwsh
+        run: |
+          node --version; git --version; claude --version
+          $out = claude -p --output-format json --max-turns 1 --setting-sources project --strict-mcp-config -- "Reply with OK" 2>&1 | Out-String
+          if ($LASTEXITCODE -ne 0 -or $out -match '"is_error":\s*true') { Write-Output "::error::preflight failed: Claude Code refused or is not signed in"; Write-Output $out; exit 1 }
+      - run: npm ci
+      - name: Electron binary present (a slow download can leave it missing and freeze the tests)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path node_modules/electron/dist/electron.exe)) { Write-Output "::error::Electron binary missing after npm ci (download failed or too slow)"; exit 1 }
+      - run: npm run build
+      - name: J0 real AI x3
+        shell: pwsh
+        run: |
+          Remove-Item -ErrorAction SilentlyContinue real-ai-junit.xml
+          npx playwright test tests/e2e/sprint0.spec.ts -g "J0" --repeat-each=3 --timeout=240000 --trace off --reporter=line,junit
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: real-ai-junit.xml
+      - uses: actions/upload-artifact@v4
+        # Public repo: keep only failure records, briefly (may hold Claude output and local paths).
+        if: failure()
+        with:
+          name: real-ai-${{ github.sha }}
+          path: real-ai-junit.xml
+          retention-days: 3
+          if-no-files-found: ignore
+
+  alert:
+    name: open or update the real-ai issue on failure
+    needs: journeys
+    if: failure() && github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref_name }}
+        run: |
+          n=$(gh api "repos/$REPO/issues?state=open&labels=real-ai" --jq '.[0].number // empty')
+          body="Real-AI journeys failed on $SHA ($REF). Run: $RUN"
+          if [ -n "$n" ]; then gh api "repos/$REPO/issues/$n/comments" -f body="$body"
+          else gh api "repos/$REPO/issues" -f title="Real-AI journeys failing" -f body="$body" -f 'labels[]=real-ai' -f 'assignees[]=vikas53953'; fi

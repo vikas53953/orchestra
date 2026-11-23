@@ -1,0 +1,24 @@
+.o-work { flex: 1; display: flex; min-width: 0; overflow: hidden; }
+.o-msgs {
+  flex: 1; overflow-y: auto; padding: var(--o-s5) var(--o-s5) var(--o-s5); scrollbar-width: thin; scrollbar-color: var(--o-hover) transparent;
+  -webkit-mask-image: linear-gradient(transparent 0, black 20px); mask-image: linear-gradient(transparent 0, black 20px);
+}
+.o-col, .o-col-w { width: 760px; max-width: 100%; margin: 0 auto; transition: width var(--o-m-panel) ease-out; }
+.o-col { display: flex; flex-direction: column; gap: 18px; }
+.o-col.is-narrow, .o-col-w.is-narrow { width: 720px; }
+.o-sh { display: flex; flex-direction: column; gap: var(--o-s2); padding-bottom: 2px; }
+.o-h2t { margin: 0; font: var(--o-w-strong) var(--o-fs-title)/var(--o-lh-title) var(--o-sans); letter-spacing: -0.01em; color: var(--o-t1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: text; }
+.o-shm { display: flex; align-items: center; gap: var(--o-s3); min-height: 28px; font: var(--o-w-body) var(--o-fs-meta)/16px var(--o-sans); color: var(--o-t2); white-space: nowrap; }
+.o-shm-repo { max-width: calc(var(--o-name-col) * 2); }
+.o-tag { font: var(--o-w-body) var(--o-fs-meta)/16px var(--o-sans); color: var(--o-t2); background: var(--o-tint); border-radius: 4px; padding: 1px 6px; max-width: calc(var(--o-name-col) * 2); }
+.o-youmsg {
+  align-self: flex-end; max-width: 520px; background: var(--o-bubble-you); border-radius: var(--o-r-bubble); padding: var(--o-s2) 14px;
+  font: var(--o-w-body) var(--o-fs-body)/var(--o-lh-body) var(--o-sans); color: var(--o-t1); white-space: pre-wrap; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 12; overflow: hidden; user-select: text;
+}
+.o-compwrap { padding: var(--o-s3) var(--o-s5) 18px; }
+.o-pcomp-plus { color: var(--o-t4); display: grid; place-items: center; }
+.o-compwrap .o-pcomp { padding-left: 14px; }
+.o-compwrap .o-send { color: var(--o-t4); }
+.o-sk-lane { display: grid; grid-template-columns: 24px var(--o-name-col) 1fr; align-items: center; gap: 10px; padding: 10px; }
+@media (prefers-reduced-motion: reduce) { .o-col, .o-col-w { transition: none; } }

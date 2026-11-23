@@ -1,0 +1,8 @@
+.o-topbar {
+  height: 40px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 var(--o-s3) 0 var(--o-s4);
+  -webkit-app-region: drag;
+}
+.o-topbar.has-caption { padding-right: calc(var(--o-s7) * 3); }
+.o-topbar button, .o-topbar a, .o-topbar input { -webkit-app-region: no-drag; }
+.o-crumb { font: var(--o-w-body) var(--o-fs-meta)/16px var(--o-sans); color: var(--o-t2); display: flex; align-items: center; gap: var(--o-s2); min-width: 0; }
+.o-main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--o-page); position: relative; }
