@@ -1,0 +1,71 @@
+{
+  "touched": true,
+  "base": "fce2f3f54b7f314fd810690450af5f43a5098622",
+  "head": "d6a1ab5c90f1a2cc7daf68565655de77cdd7e89a",
+  "states": [
+    {
+      "state": "home",
+      "before": "home-before.png",
+      "after": "home-after.png",
+      "compare": "home-compare.png",
+      "changedPct": 0.9037037037037038,
+      "changedPixels": 11712
+    },
+    {
+      "state": "setup",
+      "before": "setup-before.png",
+      "after": "setup-after.png",
+      "compare": "setup-compare.png",
+      "changedPct": 1.377932098765432,
+      "changedPixels": 17858
+    },
+    {
+      "state": "running",
+      "before": "running-before.png",
+      "after": "running-after.png",
+      "compare": "running-compare.png",
+      "changedPct": 1.6308641975308642,
+      "changedPixels": 21136
+    },
+    {
+      "state": "answered",
+      "before": "answered-before.png",
+      "after": "answered-after.png",
+      "compare": "answered-compare.png",
+      "changedPct": 2.5429012345679016,
+      "changedPixels": 32956
+    },
+    {
+      "state": "failed",
+      "before": "failed-before.png",
+      "after": "failed-after.png",
+      "compare": "failed-compare.png",
+      "changedPct": 2.067361111111111,
+      "changedPixels": 26793
+    },
+    {
+      "state": "long-names",
+      "before": "long-names-before.png",
+      "after": "long-names-after.png",
+      "compare": "long-names-compare.png",
+      "changedPct": 1.1459104938271605,
+      "changedPixels": 14851
+    },
+    {
+      "state": "loading",
+      "before": "loading-before.png",
+      "after": "loading-after.png",
+      "compare": "loading-compare.png",
+      "changedPct": 0.7782407407407407,
+      "changedPixels": 10086
+    },
+    {
+      "state": "panel",
+      "before": "panel-before.png",
+      "after": "panel-after.png",
+      "compare": "panel-compare.png",
+      "changedPct": 2.763657407407407,
+      "changedPixels": 35817
+    }
+  ]
+}
