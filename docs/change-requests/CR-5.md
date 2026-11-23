@@ -6,4 +6,4 @@ What changes:
 2. The setup sign-in check uses the same flags.
 3. Sign-in is unchanged. The target repo's own project settings still apply.
 What Vikas will notice: agents start faster; his personal plugins, hooks and MCP servers are not used inside Orchestra.
-Approved by Vikas:
+Approved by Vikas: chose "Yes, run agents clean" on the decision card, 2026-11-23 03:29 UTC.
