@@ -2,72 +2,80 @@
   "pr": 15,
   "headSha": "0a46c946d7a9fef454c589f60dd4cde3e6a8f94f",
   "baseSha": "d71091395d005936f954a072d567a70519fec842",
-  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45106319187",
+  "runUrl": "https://github.com/vikas53953/orchestra/actions/runs/45106319725",
   "outcomes": {
-    "evidence": "cancelled"
+    "installer": "success",
+    "typecheck": "success",
+    "tokens": "success",
+    "unit": "success",
+    "red-proof": "success",
+    "mutation": "success",
+    "build": "success",
+    "e2e": "success",
+    "evidence": "success"
   },
   "rows": [
     {
       "name": "typecheck",
-      "outcome": "",
-      "result": "not run",
-      "label": "UNVERIFIED",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
       "note": ""
     },
     {
       "name": "tokens",
-      "outcome": "",
-      "result": "not run",
-      "label": "UNVERIFIED",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
       "note": ""
     },
     {
       "name": "unit",
-      "outcome": "",
-      "result": "not run",
-      "label": "UNVERIFIED",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
       "note": ""
     },
     {
       "name": "red-proof",
-      "outcome": "",
-      "result": "not run",
-      "label": "UNVERIFIED",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
       "note": ""
     },
     {
       "name": "mutation",
-      "outcome": "",
-      "result": "not run",
-      "label": "UNVERIFIED",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
       "note": ""
     },
     {
       "name": "build",
-      "outcome": "",
-      "result": "not run",
-      "label": "UNVERIFIED",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
       "note": ""
     },
     {
       "name": "e2e",
-      "outcome": "",
-      "result": "not run",
-      "label": "UNVERIFIED",
-      "note": ""
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
+      "note": "recorded replies only (pre-check)"
     },
     {
       "name": "installer",
-      "outcome": "",
-      "result": "not run",
-      "label": "UNVERIFIED",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
       "note": ""
     },
     {
       "name": "evidence",
-      "outcome": "cancelled",
-      "result": "cancelled",
-      "label": "UNVERIFIED",
+      "outcome": "success",
+      "result": "pass",
+      "label": "CONFIRMED",
       "note": ""
     },
     {
