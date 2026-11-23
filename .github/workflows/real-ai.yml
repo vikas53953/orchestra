@@ -1,12 +1,9 @@
 name: real-ai
-# Real-AI journeys on Vikas's PC (D9), fully automatic (Vikas, 2026-11-22 18:29: "fully automatic 24/7").
-# SECURITY: the repo is public, so this NEVER runs on pull_request. Only pushes to our own branches,
-# the nightly schedule and a manual run can reach the self-hosted runner.
+# Real-AI journeys on Vikas's PC (D9). Manual only (see below).
+# SECURITY: the repo is public, so this NEVER runs on pull_request; only a manual run by the owner can start it.
+# Vikas, 2026-11-23 03:30 UTC: "dont run 24/7, run normally". No automatic triggers: real-AI journeys run on
+# his PC in a session when needed. This workflow stays as a manual option only.
 on:
-  push:
-    branches: [main, 'sprint*/integration']
-  schedule:
-    - cron: '30 20 * * *' # 02:00 IST nightly
   workflow_dispatch:
 permissions:
   contents: read
