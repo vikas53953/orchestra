@@ -21,6 +21,13 @@ export interface ClaudeCodeOptions {
 }
 
 /**
+ * CR-5: every Claude call keeps the owner's sign-in but skips their personal (user-level) settings, plugins,
+ * hooks and MCP servers: agents start ~16 s faster on a heavily customised PC, behave the same on any PC, and
+ * nothing personal leaks into Orchestra's agents. The repo's own project settings still apply.
+ */
+export const ISOLATION_ARGS: readonly string[] = ['--setting-sources', 'project', '--strict-mcp-config'];
+
+/**
  * argv for one run, per architecture.md §4. `-p` is a boolean flag and the prompt is positional, so every
  * flag comes first, then '--', then the prompt last: a prompt starting with '-' is never parsed as an option.
  */
@@ -34,6 +41,7 @@ export function buildRunArgs(req: RunRequest, prompt = req.prompt, resumeSession
     '--disallowedTools', req.disallowedTools.join(','),
     '--append-system-prompt', req.systemAppend,
     '--max-turns', String(req.maxTurns),
+    ...ISOLATION_ARGS,
   ];
   if (resumeSessionId) args.push('--resume', resumeSessionId);
   args.push('--', prompt);
@@ -258,7 +266,7 @@ export class ClaudeCodeEngine implements Engine {
     const supportsStreamJson = sem ? sem[0] >= 1 : null;
     let signedIn: boolean | null = null;
     if (opts.signedIn) {
-      const r = await this.capture(['-p', '--output-format', 'json', '--max-turns', '1', '--', 'Reply with OK'], SIGNED_IN_TIMEOUT_MS);
+      const r = await this.capture(['-p', '--output-format', 'json', '--max-turns', '1', ...ISOLATION_ARGS, '--', 'Reply with OK'], SIGNED_IN_TIMEOUT_MS);
       const final = parseJsonResult(r.stdout, this.log);
       const c = classifyRun({
         ...(r.spawnError ? { spawnError: r.spawnError } : {}),

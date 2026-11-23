@@ -26,7 +26,7 @@ jobs:
         shell: pwsh
         run: |
           node --version; git --version; claude --version
-          $out = claude -p "Reply with OK" --output-format json --max-turns 1 2>&1 | Out-String
+          $out = claude -p --output-format json --max-turns 1 --setting-sources project --strict-mcp-config -- "Reply with OK" 2>&1 | Out-String
           if ($LASTEXITCODE -ne 0 -or $out -match '"is_error":\s*true') { Write-Output "::error::preflight failed: Claude Code refused or is not signed in"; Write-Output $out; exit 1 }
       - run: npm ci
       - name: Electron binary present (a slow download can leave it missing and freeze the tests)

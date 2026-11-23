@@ -65,6 +65,8 @@ describe('ClaudeCodeEngine argv', () => {
       '--disallowedTools', 'Edit,Write,Bash,WebFetch',
       '--append-system-prompt', PLAN_SYSTEM,
       '--max-turns', '30',
+      '--setting-sources', 'project',
+      '--strict-mcp-config',
       '--', 'What does this repo do?',
     ]);
     expect(buildRunArgs(teamLead({ resumeSessionId: 'abc' })).slice(-4)).toEqual(['--resume', 'abc', '--', 'What does this repo do?']);
@@ -227,6 +229,16 @@ describe('ClaudeCodeEngine probe', () => {
     const check = argvs(argvFile).find((a) => a.includes('-p'))!;
     expect(check[0]).toBe('-p');
     expect(check.slice(-2)).toEqual(['--', 'Reply with OK']);
+  });
+
+  it('CR-5: every Claude call skips the owner\'s personal plugins, hooks and MCP servers (sign-in kept)', async () => {
+    const { eng, argvFile } = engine('happy', { FAKE_CLAUDE_STRICT_ARGV: '1' });
+    await eng.probe({ signedIn: true });
+    const check = argvs(argvFile).find((a) => a.includes('-p'))!;
+    const sep = check.indexOf('--');
+    expect(check.slice(0, sep)).toEqual(expect.arrayContaining(['--setting-sources', 'project', '--strict-mcp-config']));
+    expect(check[check.indexOf('--setting-sources') + 1]).toBe('project');
+    expect(buildRunArgs(teamLead()).slice(0, -2)).toEqual(expect.arrayContaining(['--setting-sources', 'project', '--strict-mcp-config']));
   });
 
   it('B8 old Claude Code version -> supportsStreamJson false', async () => {
