@@ -12,8 +12,8 @@ if (env.FAKE_CLAUDE_ARGV_FILE) appendFileSync(env.FAKE_CLAUDE_ARGV_FILE, JSON.st
 // FAKE_CLAUDE_STRICT_ARGV=1: like the real CLI (commander), `-p` is a boolean flag and the prompt is
 // positional, so any '-'-prefixed element before '--' that is not a known option is rejected.
 if (env.FAKE_CLAUDE_STRICT_ARGV === '1') {
-  const BOOL = new Set(['-p', '--print', '--verbose', '--version']);
-  const VALUED = new Set(['--output-format', '--permission-mode', '--allowedTools', '--disallowedTools', '--append-system-prompt', '--max-turns', '--resume']);
+  const BOOL = new Set(['-p', '--print', '--verbose', '--version', '--strict-mcp-config']);
+  const VALUED = new Set(['--output-format', '--permission-mode', '--allowedTools', '--disallowedTools', '--append-system-prompt', '--max-turns', '--resume', '--setting-sources']);
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--') break;
